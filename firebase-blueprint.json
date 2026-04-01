@@ -1,0 +1,67 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "email": { "type": "string", "format": "email", "description": "User email" },
+        "displayName": { "type": "string", "description": "User display name" },
+        "photoURL": { "type": "string", "description": "User photo URL" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Profile creation timestamp" }
+      },
+      "required": ["uid", "email"]
+    },
+    "StartupKit": {
+      "title": "StartupKit",
+      "description": "Generated startup co-founder kit",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Owner UID" },
+        "idea": { "type": "string", "description": "Startup idea" },
+        "city": { "type": "string", "description": "Startup city" },
+        "result": { "type": "object", "description": "AI generated result" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Generation timestamp" }
+      },
+      "required": ["uid", "idea", "city", "result"]
+    },
+    "Meeting": {
+      "title": "Meeting",
+      "description": "Scheduled meeting between founder and investor",
+      "type": "object",
+      "properties": {
+        "investorId": { "type": "number", "description": "Investor ID" },
+        "founderId": { "type": "string", "description": "Founder UID" },
+        "meetingType": { "type": "string", "enum": ["online", "offline"], "description": "Meeting type" },
+        "date": { "type": "string", "description": "Meeting date" },
+        "time": { "type": "string", "description": "Meeting time" },
+        "duration": { "type": "string", "description": "Meeting duration" },
+        "agenda": { "type": "string", "description": "Meeting agenda" },
+        "platform": { "type": "string", "description": "Online platform" },
+        "founderName": { "type": "string", "description": "Founder name" },
+        "founderEmail": { "type": "string", "description": "Founder email" },
+        "founderPhone": { "type": "string", "description": "Founder phone" },
+        "startupName": { "type": "string", "description": "Startup name" },
+        "meetLink": { "type": "string", "description": "Meeting link" },
+        "status": { "type": "string", "enum": ["confirmed", "pending", "cancelled"], "description": "Meeting status" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
+      },
+      "required": ["investorId", "founderId", "meetingType", "date", "time", "status"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profile documents"
+    },
+    "/users/{userId}/kits/{kitId}": {
+      "schema": "StartupKit",
+      "description": "User's generated startup kits"
+    },
+    "/meetings/{meetingId}": {
+      "schema": "Meeting",
+      "description": "Scheduled meetings"
+    }
+  }
+}
