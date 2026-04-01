@@ -1,15 +1,14 @@
 # Task Progress: Fix Terminal Error & GitHub Setup
 
-## Approved Plan Steps:
+## Completed Steps:
+1. [x] Install rimraf (`npm i -D rimraf`).
+2. [x] Edit package.json: Windows clean script with rimraf.
+3. [x] Create .env.example.
+7. [x] Commit changes (3552ff6).
 
-1. [ ] Install rimraf for cross-platform clean script (`npm i -D rimraf`).
-2. [ ] Edit package.json: Update "clean" script to use `rimraf dist`.
-3. [ ] Create/update .env.example with required env vars.
-4. [ ] Install GitHub CLI (`winget install --id GitHub.cli`).
-5. [ ] Authenticate `gh auth login`.
-6. [ ] Create feature branch `blackboxai/fix-terminal-github`.
-7. [ ] Commit changes.
-8. [ ] Create PR with `gh pr create`.
-9. [x] Verify/test app start (`npm run dev`).
+## Remaining (User Action):
+4. [ ] Install GitHub CLI: `winget install --id GitHub.cli` (confirm Y).
+5. [ ] `gh auth login`.
+6. [ ] New branch: `git checkout -b blackboxai/fixes`.
+8. [ ] `gh pr create --title "Fix terminal errors, Windows compat, env setup"`.
 
-**Status:** Starting implementation...
