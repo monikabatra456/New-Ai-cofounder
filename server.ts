@@ -24,7 +24,7 @@ const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
 async function generateDailyRoom() {
   if (!DAILY_API_KEY) {
     console.warn("DAILY_API_KEY is missing. Returning a placeholder link.");
-    return `https://founderai.daily.co/meeting-${Math.random().toString(36).substring(7)}`;
+    return `https://ai-cofounder.daily.co/meeting-${Math.random().toString(36).substring(7)}`;
   }
 
   try {
@@ -46,7 +46,7 @@ async function generateDailyRoom() {
     return data.url;
   } catch (error) {
     console.error("Daily.co API Error:", error);
-    return `https://founderai.daily.co/fallback-${Math.random().toString(36).substring(7)}`;
+    return `https://ai-cofounder.daily.co/fallback-${Math.random().toString(36).substring(7)}`;
   }
 }
 
@@ -105,7 +105,7 @@ Return ONLY valid JSON (no extra text) with this exact structure:
     if (!GROQ_KEY) {
       console.error("Groq API key is missing from environment variables.");
       return res.status(500).json({ 
-        error: "Groq API key is not configured. Please add it to the Secrets panel in AI Studio with the name 'Aicofounder' or 'GROQ_API_KEY'." 
+        error: "Groq API key is not configured. Please add it to the Secrets panel with the name 'AICofounder' or 'GROQ_API_KEY'." 
       });
     }
 
@@ -168,7 +168,7 @@ Analyze the given startup idea for the city of ${city} and return ONLY valid JSO
 
     try {
       const { data, error } = await resend.emails.send({
-        from: "FounderAI <onboarding@resend.dev>",
+        from: "AI Cofounder <onboarding@resend.dev>",
         to: [to],
         subject: subject,
         text: body,

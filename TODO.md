@@ -1,14 +1,27 @@
-# Task Progress: Fix Terminal Error & GitHub Setup
+# AI Cofounder Rename Task - TODO List
 
-## Completed Steps:
-1. [x] Install rimraf (`npm i -D rimraf`).
-2. [x] Edit package.json: Windows clean script with rimraf.
-3. [x] Create .env.example.
-7. [x] Commit changes (3552ff6).
+## Plan Status: ✅ Approved by user
 
-## Remaining (User Action):
-4. [ ] Install GitHub CLI: `winget install --id GitHub.cli` (confirm Y).
-5. [ ] `gh auth login`.
-6. [ ] New branch: `git checkout -b blackboxai/fixes`.
-8. [ ] `gh pr create --title "Fix terminal errors, Windows compat, env setup"`.
+**Current Progress: 0/7 steps complete**
 
+### Steps to Complete:
+
+- ✅ **Step 1**: Update `index.html` title from "My Google AI Studio App" → "AI Cofounder" ✓
+- ✅ **Step 2**: Update `metadata.json` name from "FounderAI" → "AI Cofounder" ✓
+- ✅ **Step 3**: Update `README.md` - Full rebrand "# FounderAI" → "# AI Cofounder" throughout ✓
+- ✅ **Step 4**: Update `server.ts` - "founderai" URLs → "ai-cofounder", email sender name ✓
+- [ ] **Step 5**: Update `src/App.tsx` - All "FounderAI" → "AI Cofounder" (sidebar, emails, UI strings)
+- ✅ **Step 6**: Update `package.json` - Set project name "ai-cofounder" ✓
+- [ ] **Step 7**: Test & Verify - `npm run dev`, check title/UI/server functionality
+
+### After Completion:
+
+```
+npm run dev
+- Verify browser title "AI Cofounder"
+- Test dashboard generation, PPT download, meeting scheduler
+- Check console/server logs for errors
+git commit -m "chore: complete rebrand to AI Cofounder"
+```
+
+**Next Action**: Starting Step 1...
