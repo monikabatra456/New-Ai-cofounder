@@ -71,7 +71,11 @@ async function generateDailyRoom() {
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = Number(process.env.PORT) || 3000;
+  const APP_HOSTNAME = (process.env.APP_HOSTNAME || "localhost")
+    .trim()
+    .replace(/\s+/g, "-")
+    .toLowerCase();
 
   app.use(express.json());
   app.use(cors());
@@ -231,7 +235,7 @@ Analyze the given startup idea for the city of ${city} and return ONLY valid JSO
   }
 
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`Server running on http://${APP_HOSTNAME}:${PORT}`);
   });
 }
 

@@ -456,6 +456,23 @@ function generatePresentationContent(prompt: string, slideCount: string, theme: 
 const API_URL = import.meta.env.VITE_API_BASE_URL || "";
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || "";
 
+function formatGeminiError(error: unknown): string {
+  const raw = error instanceof Error ? error.message : String(error || "Unknown error");
+  const lower = raw.toLowerCase();
+
+  if (!GEMINI_API_KEY) {
+    return "Gemini API key missing. Please set VITE_GEMINI_API_KEY in .env and restart the server.";
+  }
+
+  if (lower.includes("resource_exhausted") || lower.includes("quota") || lower.includes("429")) {
+    const retryMatch = raw.match(/retry in\s+([\d.]+)s/i) || raw.match(/"retryDelay"\s*:\s*"(\d+)s"/i);
+    const retryText = retryMatch ? ` Please retry in about ${Math.ceil(Number(retryMatch[1]))} seconds.` : " Please retry shortly.";
+    return "Gemini quota limit reached for the selected model." + retryText + " You can also switch to a lower-cost model or check billing/limits in Google AI Studio.";
+  }
+
+  return "AI request failed right now. Please try again in a moment.";
+}
+
 // --- Meeting Scheduler Component ---
 const MeetingScheduler = ({ 
   user,
@@ -2217,43 +2234,56 @@ export default function App() {
     }, 100);
 
     try {
-      // 1. Use Google Search Grounding to get real data
-      const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: `Research the latest trends and data for this startup idea in India: ${pptPrompt}. Provide key market stats, competitors, and growth potential.`,
-        config: {
-          tools: [{ googleSearch: {} }]
+      // 1. Try Google Search Grounding, but do not fail generation if API call fails.
+      let researchData = "";
+      if (GEMINI_API_KEY) {
+        try {
+          const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+          const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: `Research the latest trends and data for this startup idea in India: ${pptPrompt}. Provide key market stats, competitors, and growth potential.`,
+            config: {
+              tools: [{ googleSearch: {} }]
+            }
+          });
+          researchData = response.text || "";
+        } catch (researchError) {
+          console.warn("PPT research step failed, continuing with local generation:", researchError);
         }
-      });
-      
-      const researchData = response.text || "";
-      console.log("Research Data:", researchData);
+      }
 
-      // 2. Generate Content (using mock for structure, but could be AI)
+      // 2. Always generate local PPT content.
+      const promptWithContext = researchData
+        ? `${pptPrompt} (Context: ${researchData.substring(0, 500)})`
+        : pptPrompt;
+
       const data = generatePresentationContent(
-        pptPrompt + " (Context: " + researchData.substring(0, 500) + ")", 
-        pptSlidesCount.toString(), 
-        pptTheme, 
-        pptLanguage, 
+        promptWithContext,
+        pptSlidesCount.toString(),
+        pptTheme,
+        pptLanguage,
         "Investor Pitch"
       );
-      
-      // 3. Save to Firestore if user is logged in
-      if (user) {
-        await addDoc(collection(db, 'pitchDecks'), {
-          ...data,
-          userId: user.uid,
-          prompt: pptPrompt,
-          researchContext: researchData,
-          createdAt: serverTimestamp()
-        });
-      }
 
       setPptData(data);
       setPptProgress(100);
       setPptLoadingStep(5);
       setCurrentSlideIndex(0);
+
+      // 3. Save is best-effort and should not block the user flow.
+      if (user) {
+        try {
+          await addDoc(collection(db, 'pitchDecks'), {
+            ...data,
+            userId: user.uid,
+            prompt: pptPrompt,
+            researchContext: researchData,
+            createdAt: serverTimestamp()
+          });
+        } catch (saveError) {
+          console.warn("Failed to save generated PPT to Firestore:", saveError);
+        }
+      }
     } catch (error) {
       console.error("PPT Generation failed", error);
       alert("Something went wrong while generating the PPT. Please try again.");
@@ -2282,7 +2312,7 @@ export default function App() {
       }));
 
       const chat = ai.chats.create({
-        model: "gemini-3.1-pro-preview",
+        model: "gemini-2.5-flash",
         config: {
           systemInstruction: "You are FounderAI Co-Pilot, a world-class startup strategist and venture capital expert. Your goal is to help founders build billion-dollar companies. Provide deep, actionable insights on business models, unit economics, fundraising, and product-market fit. Be visionary yet practical. Use professional, encouraging language. If the user asks about their pitch deck, refer to the data they've provided in the app if possible.",
         },
@@ -2297,7 +2327,7 @@ export default function App() {
       setChatMessages(prev => [...prev, { role: 'model', content: modelResponse }]);
     } catch (error) {
       console.error("Chat error:", error);
-      setChatMessages(prev => [...prev, { role: 'model', content: "Error: " + (error instanceof Error ? error.message : "Unknown error") }]);
+      setChatMessages(prev => [...prev, { role: 'model', content: formatGeminiError(error) }]);
     } finally {
       setIsChatLoading(false);
     }
@@ -3420,14 +3450,24 @@ export default function App() {
       {/* Chat Panel (AI Co-Pilot) */}
       <AnimatePresence>
         {isChatOpen && (
+          <>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18, ease: "easeOut" }}
+            className="fixed inset-0 bg-black/45 backdrop-blur-[2px] z-[95]"
+            onClick={() => setIsChatOpen(false)}
+          />
           <motion.div 
-            initial={{ x: 400, opacity: 0 }}
+            initial={{ x: 120, opacity: 0, scale: 0.99 }}
             animate={{ x: 0, opacity: 1 }}
-            exit={{ x: 400, opacity: 0 }}
-            className="fixed top-4 right-4 bottom-4 w-[400px] bg-[#0B121F]/95 backdrop-blur-xl border border-white/10 z-[100] flex flex-col shadow-[0_0_50px_rgba(0,0,0,0.5)] rounded-3xl overflow-hidden"
+            exit={{ x: 90, opacity: 0, scale: 0.995 }}
+            transition={{ duration: 0.22, ease: "easeOut" }}
+            className="fixed left-2 right-2 top-2 bottom-2 sm:left-auto sm:right-4 sm:top-4 sm:bottom-4 sm:w-[min(92vw,680px)] lg:w-[700px] xl:w-[760px] bg-[#0B121F]/95 backdrop-blur-xl border border-white/10 z-[100] flex flex-col shadow-[0_0_70px_rgba(0,0,0,0.55)] rounded-2xl sm:rounded-3xl overflow-hidden"
           >
             {/* Header */}
-            <div className="p-6 border-b border-white/5 flex items-center justify-between bg-gradient-to-r from-accent/10 to-transparent">
+            <div className="p-5 sm:p-6 border-b border-white/5 flex items-center justify-between bg-gradient-to-r from-accent/10 to-transparent">
               <div className="flex items-center gap-4">
                 <div className="relative">
                   <div className="w-12 h-12 bg-accent/20 rounded-2xl flex items-center justify-center border border-accent/30">
@@ -3437,7 +3477,7 @@ export default function App() {
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-white tracking-tight">FounderAI Co-Pilot</h3>
-                  <p className="text-[10px] text-accent font-semibold uppercase tracking-widest">Advanced Strategy Engine</p>
+                  <p className="text-[10px] text-accent/90 font-semibold uppercase tracking-widest">Startup Strategy Assistant</p>
                 </div>
               </div>
               <button 
@@ -3449,7 +3489,7 @@ export default function App() {
             </div>
 
             {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto p-5 sm:p-6 md:p-7 space-y-6 custom-scrollbar">
               {chatMessages.length === 0 && (
                 <div className="space-y-8 py-4">
                   <div className="text-center space-y-4">
@@ -3459,41 +3499,50 @@ export default function App() {
                     <div className="space-y-2">
                       <h4 className="text-white font-bold text-lg">Welcome, Founder!</h4>
                       <p className="text-sm text-gray-400 px-4 leading-relaxed">
-                        I'm your dedicated AI Co-Pilot. I can help you refine your pitch, analyze market trends, or find the perfect investors.
+                        Your AI co-pilot for pitch refinement, market analysis, and investor targeting.
                       </p>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-3">
-                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest px-2">Quick Actions</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest px-2">Quick Prompts</p>
                     {[
                       { icon: Presentation, text: "Review my pitch deck", prompt: "Can you review my current pitch deck and suggest improvements?" },
                       { icon: TrendingUp, text: "Analyze market size", prompt: "Help me calculate the TAM, SAM, and SOM for my startup idea." },
                       { icon: Users, text: "Find target investors", prompt: "Who are the top 5 investors I should target for my startup?" },
                       { icon: Mail, text: "Draft investor email", prompt: "Draft a compelling cold email for a Seed round investor." }
                     ].map((action, i) => (
-                      <button
+                      <motion.button
                         key={i}
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.2, delay: i * 0.04 }}
                         onClick={() => {
                           setChatInput(action.prompt);
                           // We don't auto-send to give user a chance to edit
                         }}
-                        className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/5 hover:border-accent/30 hover:bg-accent/5 transition-all text-left group"
+                        className="flex items-center gap-3 p-3.5 rounded-2xl bg-white/[0.04] border border-white/10 hover:border-accent/35 hover:bg-accent/10 transition-all text-left group"
                       >
                         <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center group-hover:bg-accent/20 transition-all">
                           <action.icon className="w-4 h-4 text-gray-400 group-hover:text-accent" />
                         </div>
                         <span className="text-xs text-gray-300 group-hover:text-white font-medium">{action.text}</span>
-                      </button>
+                      </motion.button>
                     ))}
                   </div>
                 </div>
               )}
 
               {chatMessages.map((msg, i) => (
-                <div key={i} className={cn("flex flex-col gap-2", msg.role === 'user' ? "items-end" : "items-start")}>
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.18, ease: "easeOut" }}
+                  className={cn("flex flex-col gap-2", msg.role === 'user' ? "items-end" : "items-start")}
+                >
                   <div className={cn(
-                    "max-w-[90%] p-4 rounded-2xl text-sm leading-relaxed shadow-lg",
+                    "max-w-[88%] p-4 sm:p-5 rounded-2xl text-sm sm:text-[15px] leading-relaxed shadow-lg",
                     msg.role === 'user' 
                       ? "bg-accent text-white rounded-tr-none" 
                       : "bg-gray-800/50 text-gray-200 rounded-tl-none border border-white/5 backdrop-blur-sm"
@@ -3521,14 +3570,14 @@ export default function App() {
                       </button>
                     </div>
                   )}
-                </div>
+                </motion.div>
               ))}
               
               {isChatLoading && (
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center gap-2 text-[10px] text-accent font-bold uppercase tracking-widest ml-2">
                     <Loader2 className="w-3 h-3 animate-spin" />
-                    AI is thinking...
+                    Thinking...
                   </div>
                   <div className="bg-gray-800/30 p-4 rounded-2xl rounded-tl-none border border-white/5 w-2/3">
                     <div className="flex gap-1">
@@ -3542,15 +3591,15 @@ export default function App() {
             </div>
 
             {/* Input Area */}
-            <div className="p-6 border-t border-white/5 bg-gray-900/50">
+            <div className="p-5 sm:p-6 border-t border-white/5 bg-gray-900/50">
               <div className="relative">
                 <input 
                   type="text" 
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleChat()}
-                  placeholder="Ask me anything..."
-                  className="w-full bg-gray-800/50 border border-white/10 rounded-2xl pl-4 pr-14 py-4 text-sm text-white focus:border-accent focus:ring-1 focus:ring-accent outline-none transition-all placeholder:text-gray-500"
+                  placeholder="Ask about pitch, market, or investors..."
+                  className="w-full bg-gray-800/50 border border-white/10 rounded-2xl pl-4 pr-14 py-4 text-sm sm:text-base text-white focus:border-accent focus:ring-1 focus:ring-accent outline-none transition-all placeholder:text-gray-500"
                 />
                 <button 
                   onClick={handleChat}
@@ -3565,6 +3614,7 @@ export default function App() {
               </p>
             </div>
           </motion.div>
+          </>
         )}
       </AnimatePresence>
     </div>
