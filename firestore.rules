@@ -1,48 +1,73 @@
-rules_version = '2';
-
 // ===============================================================
 // Assumed Data Model
 // ===============================================================
 //
-// Collection: /users/{userId}
-// Document ID: userId (Firebase Auth UID)
+// Collection: users
+// Document ID: {uid}
 // Fields:
-//   - uid: string (required, immutable) - Firebase Auth UID
-//   - email: string (required, email format) - User email
-//   - displayName: string (optional) - User display name
-//   - photoURL: string (optional, url format) - User photo URL
-//   - createdAt: timestamp (required, immutable) - Profile creation timestamp
+//   - uid: string (required) - The user's ID
+//   - email: string (required) - The user's email
+//   - displayName: string (optional) - The user's display name
+//   - photoURL: string (optional) - The user's photo URL
+//   - createdAt: timestamp (optional) - When the user was created
 //
-// Collection: /users/{userId}/kits/{kitId}
-// Document ID: auto-generated
+// Collection: pitchDecks
+// Document ID: {deckId}
 // Fields:
-//   - uid: string (required, immutable) - Owner UID
-//   - idea: string (required, min 10 chars) - Startup idea
-//   - city: string (required) - Startup city
-//   - result: map (required) - AI generated result object
-//   - createdAt: timestamp (required, immutable) - Generation timestamp
+//   - userId: string (required) - The owner's ID
+//   - prompt: string (optional) - The prompt used for generation
+//   - topic: string (optional) - The topic of the deck
+//   - startupName: string (required) - The startup's name
+//   - targetCity: string (optional) - The target city
+//   - fundingAsk: string (optional) - The funding ask
+//   - theme: map (optional) - The theme colors
+//   - slides: list (required) - The slides in the deck
+//   - createdAt: timestamp (optional) - When the deck was created
 //
-// Collection: /meetings/{meetingId}
-// Document ID: auto-generated
+// Collection: chats
+// Document ID: {chatId}
 // Fields:
-//   - investorId: number (required) - Investor ID
-//   - founderId: string (required, immutable) - Founder UID
-//   - meetingType: string (required, online/offline) - Meeting type
-//   - date: string (required) - Meeting date
-//   - time: string (required) - Meeting time
-//   - duration: string (optional) - Meeting duration
-//   - agenda: string (optional) - Meeting agenda
-//   - platform: string (optional) - Online platform
-//   - founderName: string (required) - Founder name
-//   - founderEmail: string (required, email format) - Founder email
-//   - founderPhone: string (optional) - Founder phone
-//   - startupName: string (optional) - Startup name
-//   - meetLink: string (optional, url format) - Meeting link
-//   - status: string (required, confirmed/pending/cancelled) - Meeting status
-//   - createdAt: timestamp (required, immutable) - Creation timestamp
+//   - userId: string (required) - The owner's ID
+//   - messages: list (required) - The messages in the chat
+//   - createdAt: timestamp (optional) - When the chat was created
+//
+// Collection: videos
+// Document ID: {videoId}
+// Fields:
+//   - userId: string (required) - The owner's ID
+//   - prompt: string (optional) - The prompt used for generation
+//   - videoUrl: string (required) - The URL of the generated video
+//   - createdAt: timestamp (optional) - When the video was created
+//
+// Collection: meetings
+// Document ID: {meetingId}
+// Fields:
+//   - investorId: number (required) - The investor's ID
+//   - founderId: string (required) - The founder's ID
+//   - meetingType: string (optional) - 'online' or 'offline'
+//   - date: string (required) - The meeting date
+//   - time: string (required) - The meeting time
+//   - duration: string (optional) - The meeting duration
+//   - agenda: string (optional) - The meeting agenda
+//   - founderName: string (optional) - The founder's name
+//   - founderEmail: string (optional) - The founder's email
+//   - founderPhone: string (optional) - The founder's phone
+//   - startupName: string (optional) - The startup's name
+//   - meetLink: string (optional) - The meeting link
+//   - status: string (required) - 'confirmed', 'pending', or 'cancelled'
+//   - createdAt: timestamp (optional) - When the meeting was created
+//
+// Collection: users/{uid}/kits
+// Document ID: {kitId}
+// Fields:
+//   - idea: string (required) - The startup idea
+//   - city: string (required) - The target city
+//   - result: map (required) - The generated result
+//   - createdAt: timestamp (optional) - When the kit was saved
 //
 // ===============================================================
 
+rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -58,10 +83,18 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.userId;
+    }
+
     function isAdmin() {
-      return isAuthenticated() && 
+      return isAuthenticated() &&
         (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
-         (request.auth.token.email == "chotimonino1@gmail.com" && request.auth.token.email_verified == true));
+          (request.auth.token.email == "chotimonino1@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
     }
 
     function isValidEmail(email) {
@@ -77,71 +110,87 @@ service cloud.firestore {
     // ===============================================================
 
     function isValidUser(data) {
-      return data.keys().hasAll(['uid', 'email', 'createdAt']) &&
-             data.uid == request.auth.uid &&
-             isValidEmail(data.email) &&
-             data.createdAt is timestamp &&
-             (!('displayName' in data) || (data.displayName is string && data.displayName.size() < 100)) &&
-             (!('photoURL' in data) || isValidUrl(data.photoURL));
+      return data.uid is string && data.uid.size() > 0 &&
+             data.email is string && isValidEmail(data.email);
     }
 
-    function isValidKit(data) {
-      return data.keys().hasAll(['uid', 'idea', 'city', 'result', 'createdAt']) &&
-             data.uid == request.auth.uid &&
-             data.idea is string && data.idea.size() >= 10 && data.idea.size() < 5000 &&
-             data.city is string &&
-             data.result is map &&
-             data.createdAt is timestamp;
+    function isValidPitchDeck(data) {
+      return data.userId is string && data.userId.size() > 0 &&
+             data.startupName is string && data.startupName.size() > 0 &&
+             data.slides is list;
+    }
+
+    function isValidChat(data) {
+      return data.userId is string && data.userId.size() > 0 &&
+             data.messages is list;
+    }
+
+    function isValidVideo(data) {
+      return data.userId is string && data.userId.size() > 0 &&
+             isValidUrl(data.videoUrl);
     }
 
     function isValidMeeting(data) {
-      return data.keys().hasAll(['investorId', 'founderId', 'meetingType', 'date', 'time', 'status', 'createdAt', 'founderName', 'founderEmail']) &&
-             data.founderId == request.auth.uid &&
-             data.investorId is number &&
-             data.meetingType in ['online', 'offline'] &&
-             data.date is string &&
-             data.time is string &&
-             data.status in ['confirmed', 'pending', 'cancelled'] &&
-             data.createdAt is timestamp &&
-             data.founderName is string && data.founderName.size() > 0 &&
-             isValidEmail(data.founderEmail) &&
-             (!('meetLink' in data) || isValidUrl(data.meetLink));
+      return data.investorId is number &&
+             data.founderId is string && data.founderId.size() > 0 &&
+             data.date is string && data.date.size() > 0 &&
+             data.time is string && data.time.size() > 0 &&
+             data.status in ['confirmed', 'pending', 'cancelled'];
+    }
+
+    function isValidStartupKit(data) {
+      return data.idea is string && data.idea.size() > 0 &&
+             data.city is string && data.city.size() > 0 &&
+             data.result is map;
     }
 
     // ===============================================================
     // Rules
     // ===============================================================
 
+    match /users/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+      allow create: if isAuthenticated() && isOwner(uid) && isValidUser(request.resource.data);
+      allow update: if isAuthenticated() && isOwner(uid) && isValidUser(request.resource.data) && 
+                      (!('role' in request.resource.data) || request.resource.data.role == resource.data.role || isAdmin());
+    }
+
+    match /pitchDecks/{deckId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid && isValidPitchDeck(request.resource.data);
+      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid && isValidPitchDeck(request.resource.data);
+      allow delete: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    match /chats/{chatId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid && isValidChat(request.resource.data);
+      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid && isValidChat(request.resource.data);
+      allow delete: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    match /videos/{videoId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid && isValidVideo(request.resource.data);
+      allow delete: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
     match /meetings/{meetingId} {
       allow read: if isAuthenticated() && (resource.data.founderId == request.auth.uid || isAdmin());
-      allow create: if isAuthenticated() && isValidMeeting(request.resource.data);
-      allow update: if isAuthenticated() && (resource.data.founderId == request.auth.uid || isAdmin()) &&
-                      isValidMeeting(request.resource.data) &&
-                      request.resource.data.founderId == resource.data.founderId &&
-                      request.resource.data.createdAt == resource.data.createdAt;
+      allow create: if isAuthenticated() && request.resource.data.founderId == request.auth.uid && isValidMeeting(request.resource.data);
+      allow update: if isAuthenticated() && (resource.data.founderId == request.auth.uid || isAdmin()) && isValidMeeting(request.resource.data);
       allow delete: if isAdmin();
     }
 
-    match /users/{userId} {
-      allow read: if isOwner(userId) || isAdmin();
-      allow create: if isOwner(userId) && isValidUser(request.resource.data);
-      allow update: if isOwner(userId) && isValidUser(request.resource.data) && 
-                      request.resource.data.uid == resource.data.uid &&
-                      request.resource.data.createdAt == resource.data.createdAt;
-      
-      match /kits/{kitId} {
-        allow read: if isOwner(userId) || isAdmin();
-        allow create: if isOwner(userId) && isValidKit(request.resource.data);
-        allow update: if isOwner(userId) && isValidKit(request.resource.data) &&
-                        request.resource.data.uid == resource.data.uid &&
-                        request.resource.data.createdAt == resource.data.createdAt;
-        allow delete: if isOwner(userId) || isAdmin();
-      }
+    match /users/{uid}/kits/{kitId} {
+      allow read: if isOwner(uid) || isAdmin();
+      allow create: if isOwner(uid) && isValidStartupKit(request.resource.data);
+      allow update: if isOwner(uid) && isValidStartupKit(request.resource.data);
+      allow delete: if isOwner(uid) || isAdmin();
     }
 
-    // Default deny
-    match /{document=**} {
-      allow read, write: if false;
+    match /test/{docId} {
+      allow read: if true;
     }
   }
 }

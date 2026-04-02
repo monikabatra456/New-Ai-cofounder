@@ -54,6 +54,7 @@ export interface AIResult {
     body: string;
   };
   city?: string;
+  thinkingAnalysis?: string;
   groundingSources?: { title: string; uri: string }[];
   localInvestors?: Investor[];
 }

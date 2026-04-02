@@ -7,12 +7,31 @@ import Groq from "groq-sdk";
 import { Resend } from "resend";
 
 // API Key Validation
-const GROQ_KEY = process.env.GROQ_API_KEY || process.env.Aicofounder || process.env.API_KEY;
+function getFirstEnv(...keys: string[]) {
+  for (const key of keys) {
+    const raw = process.env[key];
+    if (raw && raw.trim()) {
+      return raw.trim().replace(/^['\"]|['\"]$/g, "");
+    }
+  }
+  return "";
+}
+
+const GROQ_KEY = getFirstEnv(
+  "GROQ_API_KEY",
+  "Aicofounder",
+  "AICofounder",
+  "AICOFOUNDER",
+  "GROQ_KEY",
+  "API_KEY"
+);
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const DAILY_API_KEY = process.env.DAILY_API_KEY;
 
 if (!GROQ_KEY) {
-  console.error("ERROR: GROQ_API_KEY or Aicofounder is missing in .env");
+  console.error(
+    "ERROR: Groq API key missing. Set one of: GROQ_API_KEY, Aicofounder, AICofounder, AICOFOUNDER, GROQ_KEY, API_KEY"
+  );
 }
 
 const groq = new Groq({
@@ -24,7 +43,7 @@ const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
 async function generateDailyRoom() {
   if (!DAILY_API_KEY) {
     console.warn("DAILY_API_KEY is missing. Returning a placeholder link.");
-    return `https://ai-cofounder.daily.co/meeting-${Math.random().toString(36).substring(7)}`;
+    return `https://founderai.daily.co/meeting-${Math.random().toString(36).substring(7)}`;
   }
 
   try {
@@ -46,7 +65,7 @@ async function generateDailyRoom() {
     return data.url;
   } catch (error) {
     console.error("Daily.co API Error:", error);
-    return `https://ai-cofounder.daily.co/fallback-${Math.random().toString(36).substring(7)}`;
+    return `https://founderai.daily.co/fallback-${Math.random().toString(36).substring(7)}`;
   }
 }
 
@@ -105,7 +124,7 @@ Return ONLY valid JSON (no extra text) with this exact structure:
     if (!GROQ_KEY) {
       console.error("Groq API key is missing from environment variables.");
       return res.status(500).json({ 
-        error: "Groq API key is not configured. Please add it to the Secrets panel with the name 'AICofounder' or 'GROQ_API_KEY'." 
+        error: "Groq API key is not configured. Set GROQ_API_KEY in .env and restart the dev server." 
       });
     }
 
@@ -168,7 +187,7 @@ Analyze the given startup idea for the city of ${city} and return ONLY valid JSO
 
     try {
       const { data, error } = await resend.emails.send({
-        from: "AI Cofounder <onboarding@resend.dev>",
+        from: "FounderAI <onboarding@resend.dev>",
         to: [to],
         subject: subject,
         text: body,

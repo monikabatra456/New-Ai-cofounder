@@ -1,67 +1,109 @@
 {
   "entities": {
-    "UserProfile": {
-      "title": "UserProfile",
-      "description": "User profile information",
+    "User": {
+      "title": "User",
+      "description": "A user of the application",
       "type": "object",
       "properties": {
-        "uid": { "type": "string", "description": "Firebase Auth UID" },
-        "email": { "type": "string", "format": "email", "description": "User email" },
-        "displayName": { "type": "string", "description": "User display name" },
-        "photoURL": { "type": "string", "description": "User photo URL" },
-        "createdAt": { "type": "string", "format": "date-time", "description": "Profile creation timestamp" }
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["uid", "email"]
     },
-    "StartupKit": {
-      "title": "StartupKit",
-      "description": "Generated startup co-founder kit",
+    "PitchDeck": {
+      "title": "PitchDeck",
+      "description": "A generated pitch deck",
       "type": "object",
       "properties": {
-        "uid": { "type": "string", "description": "Owner UID" },
-        "idea": { "type": "string", "description": "Startup idea" },
-        "city": { "type": "string", "description": "Startup city" },
-        "result": { "type": "object", "description": "AI generated result" },
-        "createdAt": { "type": "string", "format": "date-time", "description": "Generation timestamp" }
+        "userId": { "type": "string" },
+        "prompt": { "type": "string" },
+        "topic": { "type": "string" },
+        "startupName": { "type": "string" },
+        "targetCity": { "type": "string" },
+        "fundingAsk": { "type": "string" },
+        "theme": { "type": "object" },
+        "slides": { "type": "array", "items": { "type": "object" } },
+        "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["uid", "idea", "city", "result"]
+      "required": ["userId", "startupName", "slides"]
+    },
+    "ChatSession": {
+      "title": "ChatSession",
+      "description": "A chat session with Gemini",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "messages": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "role": { "type": "string", "enum": ["user", "model", "system"] },
+              "content": { "type": "string" },
+              "timestamp": { "type": "string", "format": "date-time" }
+            }
+          }
+        },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "messages"]
+    },
+    "Video": {
+      "title": "Video",
+      "description": "A generated video from an image",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "prompt": { "type": "string" },
+        "videoUrl": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "videoUrl"]
     },
     "Meeting": {
       "title": "Meeting",
-      "description": "Scheduled meeting between founder and investor",
+      "description": "A scheduled meeting between a founder and an investor",
       "type": "object",
       "properties": {
-        "investorId": { "type": "number", "description": "Investor ID" },
-        "founderId": { "type": "string", "description": "Founder UID" },
-        "meetingType": { "type": "string", "enum": ["online", "offline"], "description": "Meeting type" },
-        "date": { "type": "string", "description": "Meeting date" },
-        "time": { "type": "string", "description": "Meeting time" },
-        "duration": { "type": "string", "description": "Meeting duration" },
-        "agenda": { "type": "string", "description": "Meeting agenda" },
-        "platform": { "type": "string", "description": "Online platform" },
-        "founderName": { "type": "string", "description": "Founder name" },
-        "founderEmail": { "type": "string", "description": "Founder email" },
-        "founderPhone": { "type": "string", "description": "Founder phone" },
-        "startupName": { "type": "string", "description": "Startup name" },
-        "meetLink": { "type": "string", "description": "Meeting link" },
-        "status": { "type": "string", "enum": ["confirmed", "pending", "cancelled"], "description": "Meeting status" },
-        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
+        "investorId": { "type": "number" },
+        "founderId": { "type": "string" },
+        "meetingType": { "type": "string", "enum": ["online", "offline"] },
+        "date": { "type": "string" },
+        "time": { "type": "string" },
+        "duration": { "type": "string" },
+        "agenda": { "type": "string" },
+        "founderName": { "type": "string" },
+        "founderEmail": { "type": "string" },
+        "founderPhone": { "type": "string" },
+        "startupName": { "type": "string" },
+        "meetLink": { "type": "string" },
+        "status": { "type": "string", "enum": ["confirmed", "pending", "cancelled"] },
+        "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["investorId", "founderId", "meetingType", "date", "time", "status"]
+      "required": ["investorId", "founderId", "date", "time", "status"]
+    },
+    "StartupKit": {
+      "title": "StartupKit",
+      "description": "A saved startup kit (market analysis, pitch deck, etc.)",
+      "type": "object",
+      "properties": {
+        "idea": { "type": "string" },
+        "city": { "type": "string" },
+        "result": { "type": "object" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["idea", "city", "result"]
     }
   },
   "firestore": {
-    "/users/{userId}": {
-      "schema": "UserProfile",
-      "description": "User profile documents"
-    },
-    "/users/{userId}/kits/{kitId}": {
-      "schema": "StartupKit",
-      "description": "User's generated startup kits"
-    },
-    "/meetings/{meetingId}": {
-      "schema": "Meeting",
-      "description": "Scheduled meetings"
-    }
+    "/users/{uid}": { "schema": "User", "description": "User profiles" },
+    "/pitchDecks/{deckId}": { "schema": "PitchDeck", "description": "Generated pitch decks" },
+    "/chats/{chatId}": { "schema": "ChatSession", "description": "Chat sessions" },
+    "/videos/{videoId}": { "schema": "Video", "description": "Generated videos" },
+    "/meetings/{meetingId}": { "schema": "Meeting", "description": "Scheduled meetings" },
+    "/users/{uid}/kits/{kitId}": { "schema": "StartupKit", "description": "Saved startup kits for a user" }
   }
 }

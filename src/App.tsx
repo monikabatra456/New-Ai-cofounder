@@ -23,7 +23,6 @@ import {
   Globe,
   Target,
   Calendar,
-  Video,
   MapPin,
   Clock,
   Phone,
@@ -39,12 +38,15 @@ import {
   Layout,
   FileText,
   ChevronUp,
-  ChevronDown,
   Monitor,
+  Sparkles,
+  ChevronDown,
   Users,
   Quote,
   TrendingUp,
-  Award
+  Award,
+  Volume2,
+  BrainCircuit
 } from 'lucide-react';
 import { cn } from './lib/utils';
 import PptxGenJS from 'pptxgenjs';
@@ -53,25 +55,32 @@ import confetti from 'canvas-confetti';
 import { 
   auth, 
   db, 
-  loginWithGoogle, 
+  signInWithGoogle, 
   logout, 
-  doc, 
-  setDoc, 
-  getDoc,
+  handleFirestoreError,
+  OperationType
+} from './firebase';
+import { 
+  onAuthStateChanged, 
+  type User as FirebaseUser 
+} from 'firebase/auth';
+import { 
   collection, 
-  addDoc, 
-  serverTimestamp, 
   query, 
   where, 
   orderBy, 
-  onSnapshot,
-  getDocFromServer,
-  updateDoc,
-  deleteDoc
-} from './firebase';
-import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
-import { GoogleGenAI, Type } from "@google/genai";
+  onSnapshot, 
+  doc, 
+  getDoc, 
+  setDoc, 
+  addDoc, 
+  updateDoc, 
+  serverTimestamp, 
+  getDocFromServer 
+} from 'firebase/firestore';
+import { GoogleGenAI, Type, ThinkingLevel, Modality } from "@google/genai";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import Markdown from 'react-markdown';
 import L from 'leaflet';
 
 // Fix Leaflet marker icon issue
@@ -141,18 +150,29 @@ function getTitleEmoji(topic: string) {
 }
 
 function selectSlides(templates: any[], count: number, type: string) {
-  const essential = [0,1,2,3,4,5,6,7];
-  const optional = [8,9,10,11,12,13,14,15,16,17];
+  if (!templates || templates.length === 0) return [];
   
-  let selectedIndices = essential.slice(0, Math.min(count - 1, essential.length));
-  let selected = selectedIndices.map(i => templates[i]);
+  // 1. Start with title slide
+  const selected = [templates[0]];
   
-  const remaining = count - selected.length - 1;
-  for(let i = 0; i < remaining && i < optional.length; i++){
-    selected.push(templates[optional[i]]);
+  if (count <= 1) return selected;
+  
+  // 2. Add middle slides
+  // We want to pick up to count-1 more slides, but the last one should be the "Thank You" slide
+  const lastIndex = templates.length - 1;
+  
+  for (let i = 1; i < templates.length - 1 && selected.length < count - 1; i++) {
+    if (templates[i]) {
+      selected.push(templates[i]);
+    }
   }
   
-  selected.push(templates[templates.length - 1]);
+  // 3. Always try to end with the last slide (Thank You)
+  const lastSlide = templates[lastIndex];
+  if (lastSlide && !selected.includes(lastSlide) && selected.length < count) {
+    selected.push(lastSlide);
+  }
+  
   return selected.slice(0, count);
 }
 
@@ -164,12 +184,12 @@ function generatePresentationContent(prompt: string, slideCount: string, theme: 
   const fundingAsk = extractFunding(p);
   
   const themeColors: Record<string, any> = {
-    '🌑 Dark': { bg:'#0A0F2C', title:'#FFFFFF', text:'#E5E7EB', accent:'#3B82F6', card:'#111827', subtitle:'#93C5FD' },
-    '🚀 Startup': { bg:'#0F172A', title:'#FFFFFF', text:'#E2E8F0', accent:'#6366F1', card:'#1E1B4B', subtitle:'#C4B5FD' },
-    '💼 Corporate': { bg:'#1E293B', title:'#FFFFFF', text:'#CBD5E1', accent:'#0EA5E9', card:'#0F172A', subtitle:'#7DD3FC' },
-    '☀️ Light': { bg:'#FFFFFF', title:'#111827', text:'#374151', accent:'#3B82F6', card:'#F8FAFC', subtitle:'#6B7280' },
-    '🎨 Colorful': { bg:'#1A0A2E', title:'#FFFFFF', text:'#E9D5FF', accent:'#A855F7', card:'#2D1B69', subtitle:'#C084FC' },
-    '💜 Purple': { bg:'#1E1B4B', title:'#FFFFFF', text:'#E0E7FF', accent:'#818CF8', card:'#312E81', subtitle:'#A5B4FC' }
+    '🌑 Dark': { bgColor:'#0A0F2C', titleColor:'#FFFFFF', textColor:'#E5E7EB', accentColor:'#3B82F6', cardBg:'#111827', subtitleColor:'#93C5FD' },
+    '🚀 Startup': { bgColor:'#0F172A', titleColor:'#FFFFFF', textColor:'#E2E8F0', accentColor:'#6366F1', cardBg:'#1E1B4B', subtitleColor:'#C4B5FD' },
+    '💼 Corporate': { bgColor:'#1E293B', titleColor:'#FFFFFF', textColor:'#CBD5E1', accentColor:'#0EA5E9', cardBg:'#0F172A', subtitleColor:'#7DD3FC' },
+    '☀️ Light': { bgColor:'#FFFFFF', titleColor:'#111827', textColor:'#374151', accentColor:'#3B82F6', cardBg:'#F8FAFC', subtitleColor:'#6B7280' },
+    '🎨 Colorful': { bgColor:'#1A0A2E', titleColor:'#FFFFFF', textColor:'#E9D5FF', accentColor:'#A855F7', cardBg:'#2D1B69', subtitleColor:'#C084FC' },
+    '💜 Purple': { bgColor:'#1E1B4B', titleColor:'#FFFFFF', textColor:'#E0E7FF', accentColor:'#818CF8', cardBg:'#312E81', subtitleColor:'#A5B4FC' }
   };
   
   const t = themeColors[theme] || themeColors['🚀 Startup'];
@@ -357,6 +377,61 @@ function generatePresentationContent(prompt: string, slideCount: string, theme: 
       ],
       speakerNotes: 'Never say no competition exists. Show you understand the landscape deeply.',
       stats: []
+    },
+    {
+      layoutType: 'team',
+      emoji: '👥',
+      title: 'Our Team',
+      subtitle: 'Experienced & Passionate',
+      content: 'The minds behind ' + startupName,
+      bulletPoints: [
+        'Founder 1: 10+ years in ' + topic,
+        'Founder 2: Tech wizard, ex-Google/Meta',
+        'Advisor: Industry veteran with 3 exits',
+        'Team of 10+ passionate builders'
+      ],
+      speakerNotes: 'Highlight the unique strengths of each founder. Why are YOU the right team to solve this?',
+      stats: []
+    },
+    {
+      layoutType: 'quote',
+      emoji: '💬',
+      title: 'Customer Love',
+      subtitle: 'What people are saying',
+      content: '"This is exactly what we needed. ' + startupName + ' changed how we work."',
+      bulletPoints: [
+        '— Early Beta User from ' + targetCity
+      ],
+      speakerNotes: 'Read the quote with emotion. Social proof is one of the strongest signals for investors.',
+      stats: []
+    },
+    {
+      layoutType: 'timeline',
+      emoji: '📅',
+      title: 'Roadmap',
+      subtitle: 'The journey ahead',
+      content: 'Our plan for the next 18 months',
+      bulletPoints: [
+        'Q2 2026: Product Launch in ' + targetCity,
+        'Q3 2026: 10k Active Users milestone',
+        'Q4 2026: Expansion to 3 more cities',
+        'Q1 2027: Series A Funding round'
+      ],
+      speakerNotes: 'Show that you have a clear, ambitious but realistic plan. Focus on the next 12-18 months.',
+      stats: []
+    },
+    {
+      layoutType: 'thankyou',
+      emoji: '🙏',
+      title: 'Thank You',
+      subtitle: 'Let\'s build the future together',
+      content: 'Contact: founder@' + startupName.toLowerCase().replace(/\s+/g, '') + '.com',
+      bulletPoints: [
+        'Website: www.' + startupName.toLowerCase().replace(/\s+/g, '') + '.com',
+        'Twitter: @' + startupName.toLowerCase().replace(/\s+/g, '')
+      ],
+      speakerNotes: 'End on a high note. Leave your contact info on the screen. Open the floor for Q&A.',
+      stats: []
     }
   ];
   
@@ -379,7 +454,7 @@ function generatePresentationContent(prompt: string, slideCount: string, theme: 
 }
 
 const API_URL = import.meta.env.VITE_API_BASE_URL || "";
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || "";
 
 // --- Meeting Scheduler Component ---
 const MeetingScheduler = ({ 
@@ -638,7 +713,7 @@ const MeetingScheduler = ({
                     meetingType === 'online' ? "border-accent bg-accent/5" : "border-[#374151] bg-[#1F2937]"
                   )}
                 >
-                  <Video className="w-5 h-5 text-accent mb-2" />
+                  <Monitor className="w-5 h-5 text-accent mb-2" />
                   <p className="text-white text-sm font-bold">Virtual</p>
                   <p className="text-gray-500 text-[10px]">Google Meet / Zoom</p>
                 </button>
@@ -819,7 +894,7 @@ const MeetingScheduler = ({
                   <p className="text-gray-500 text-sm">{m.investorFund}</p>
                   <div className="flex flex-wrap justify-center md:justify-start gap-4 mt-3">
                     <span className="flex items-center gap-2 text-xs text-gray-400"><Clock size={14} /> {m.time}</span>
-                    <span className="flex items-center gap-2 text-xs text-gray-400"><Video size={14} /> {m.type === 'online' ? 'Virtual' : 'In-Person'}</span>
+                    <span className="flex items-center gap-2 text-xs text-gray-400"><Monitor size={14} /> {m.type === 'online' ? 'Virtual' : 'In-Person'}</span>
                     <span className="flex items-center gap-2 text-xs text-gray-400"><Building2 size={14} /> {m.startupName}</span>
                   </div>
                 </div>
@@ -970,7 +1045,7 @@ const MyMeetings = ({
                     <div className="text-[10px] text-muted-text uppercase font-medium">Type</div>
                     <div className="flex items-center gap-2 text-xs text-white">
                       {meeting.meetingType === 'online' ? (
-                        <Video className="w-3 h-3 text-blue-400" />
+                        <Monitor className="w-3 h-3 text-blue-400" />
                       ) : (
                         <MapPin className="w-3 h-3 text-green-400" />
                       )}
@@ -989,7 +1064,7 @@ const MyMeetings = ({
                 {meeting.meetLink && !isCancelled && (
                   <div className="bg-blue-500/5 border border-blue-500/20 p-3 rounded-xl flex items-center justify-between mb-6">
                     <div className="flex items-center gap-2">
-                      <Video className="w-4 h-4 text-blue-400" />
+                      <Monitor className="w-4 h-4 text-blue-400" />
                       <span className="text-[10px] text-blue-300 font-medium">Google Meet Link Ready</span>
                     </div>
                     <a 
@@ -1111,6 +1186,8 @@ const PPTMaker = ({
   onDownload,
   onRegenerate,
   onEditPrompt,
+  onTTS,
+  isSpeaking,
   transition,
   setTransition
 }: { 
@@ -1128,12 +1205,14 @@ const PPTMaker = ({
   language: string;
   setLanguage: (s: string) => void;
   currentSlideIndex: number;
-  setCurrentSlideIndex: (n: any) => void;
+  setCurrentSlideIndex: React.Dispatch<React.SetStateAction<number>>;
   showSpeakerNotes: boolean;
   setShowSpeakerNotes: (b: boolean) => void;
   onDownload: () => void;
   onRegenerate: () => void;
   onEditPrompt: () => void;
+  onTTS: (text: string) => void;
+  isSpeaking: boolean;
   transition: 'fade' | 'slide' | 'zoom';
   setTransition: (t: 'fade' | 'slide' | 'zoom') => void;
 }) => {
@@ -1420,12 +1499,23 @@ const PPTMaker = ({
           >
             Edit Prompt ✏️
           </button>
-          <button 
-            onClick={onDownload}
-            className="px-6 py-2 bg-[#3B82F6] hover:bg-[#2563EB] text-white rounded-lg text-sm font-bold transition-all flex items-center gap-2 shadow-lg shadow-blue-500/20"
-          >
-            Download PPTX ⬇
-          </button>
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => onTTS(pptData.slides[currentSlideIndex].content + (pptData.slides[currentSlideIndex].speakerNotes || ''))}
+              disabled={isSpeaking}
+              className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg text-sm font-medium transition-all border border-gray-700 disabled:opacity-50 flex items-center gap-2"
+              title="Read slide content"
+            >
+              {isSpeaking ? <Loader2 size={16} className="animate-spin" /> : <Volume2 size={16} />}
+              Speak
+            </button>
+            <button 
+              onClick={onDownload}
+              className="px-6 py-2 bg-[#3B82F6] hover:bg-[#2563EB] text-white rounded-lg text-sm font-bold transition-all flex items-center gap-2 shadow-lg shadow-blue-500/20"
+            >
+              Download PPTX ⬇
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1654,7 +1744,7 @@ const PPTMaker = ({
   );
 };
 
-const Sidebar = ({ activeTab, setActiveTab, user }: { activeTab: string, setActiveTab: (t: any) => void, user: FirebaseUser | null }) => {
+const Sidebar = ({ activeTab, setActiveTab, user, onToggleChat }: { activeTab: string, setActiveTab: (t: any) => void, user: FirebaseUser | null, onToggleChat: () => void }) => {
   const menuItems = [
     { id: 'home', icon: HomeIcon, label: 'Home' },
     { id: 'dashboard', icon: BarChart3, label: 'Dashboard' },
@@ -1695,11 +1785,17 @@ const Sidebar = ({ activeTab, setActiveTab, user }: { activeTab: string, setActi
                 className="absolute left-0 w-1 h-6 bg-accent rounded-r-full"
               />
             )}
-            <div className="xl:hidden absolute left-full ml-4 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">
-              {item.label}
-            </div>
           </button>
         ))}
+        
+        <button
+          onClick={onToggleChat}
+          className="w-full flex items-center gap-4 px-3 py-3 rounded-xl text-muted-text hover:bg-white/5 hover:text-white transition-all group relative"
+        >
+          <Send size={24} />
+          <span className="hidden xl:block font-medium">AI Assistant</span>
+          <span className="hidden xl:block absolute right-4 w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+        </button>
       </nav>
 
       <div className="px-2 w-full space-y-2">
@@ -1713,7 +1809,7 @@ const Sidebar = ({ activeTab, setActiveTab, user }: { activeTab: string, setActi
           </div>
         ) : (
           <button 
-            onClick={() => loginWithGoogle()}
+            onClick={() => signInWithGoogle()}
             className="w-full flex items-center gap-4 px-3 py-3 rounded-xl text-accent hover:bg-accent/10 transition-all"
           >
             <LogIn size={24} />
@@ -1781,6 +1877,7 @@ const LoadingOverlay = ({ step }: { step: number }) => {
 export default function App() {
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
+  const [isGeneratingSlides, setIsGeneratingSlides] = useState(false);
   const [activeTab, setActiveTab] = useState<'home' | 'dashboard' | 'map' | 'email' | 'meetings' | 'scheduler' | 'history' | 'ppt-maker'>('home');
   const [idea, setIdea] = useState('');
   const [selectedCity, setSelectedCity] = useState('Delhi NCR');
@@ -1793,7 +1890,58 @@ export default function App() {
   const [emailTo, setEmailTo] = useState('');
   const [emailSubject, setEmailSubject] = useState('');
   const [emailBody, setEmailBody] = useState('');
-  const [isGeneratingSlides, setIsGeneratingSlides] = useState(false);
+  const [savedDecks, setSavedDecks] = useState<any[]>([]);
+  const [chatMessages, setChatMessages] = useState<{role: string, content: string}[]>([]);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatInput, setChatInput] = useState('');
+  const [isChatLoading, setIsChatLoading] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [thinkingResult, setThinkingResult] = useState<string | null>(null);
+  const [isThinking, setIsThinking] = useState(false);
+
+  // Auth Listener
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (u) => {
+      setUser(u);
+      setIsAuthReady(true);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Load Saved Decks
+  useEffect(() => {
+    if (!user) {
+      setSavedDecks([]);
+      return;
+    }
+    const q = query(
+      collection(db, 'pitchDecks'), 
+      where('userId', '==', user.uid)
+    );
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const decks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setSavedDecks(decks);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'pitchDecks');
+    });
+    return () => unsubscribe();
+  }, [user]);
+
+  const handleLogin = async () => {
+    try {
+      await signInWithGoogle();
+    } catch (error) {
+      console.error("Login failed", error);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error("Logout failed", error);
+    }
+  };
   const [additionalSlidesCount, setAdditionalSlidesCount] = useState(3);
   const [history, setHistory] = useState<any[]>([]);
   const [mapType, setMapType] = useState<'roadmap' | 'satellite'>('roadmap');
@@ -1815,7 +1963,7 @@ export default function App() {
   const [pptLanguage, setPptLanguage] = useState('English');
   const [pptLoadingStep, setPptLoadingStep] = useState(0);
   const [pptProgress, setPptProgress] = useState(0);
-  const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
+  const [currentSlideIndex, setCurrentSlideIndex] = useState<number>(0);
   const [showSpeakerNotes, setShowSpeakerNotes] = useState(true);
   const [pptTransition, setPptTransition] = useState<'fade' | 'slide' | 'zoom'>('fade');
 
@@ -2069,17 +2217,39 @@ export default function App() {
     }, 100);
 
     try {
-      // Offline Mock Generation
-      await new Promise(resolve => setTimeout(resolve, 4000));
+      // 1. Use Google Search Grounding to get real data
+      const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: `Research the latest trends and data for this startup idea in India: ${pptPrompt}. Provide key market stats, competitors, and growth potential.`,
+        config: {
+          tools: [{ googleSearch: {} }]
+        }
+      });
       
+      const researchData = response.text || "";
+      console.log("Research Data:", researchData);
+
+      // 2. Generate Content (using mock for structure, but could be AI)
       const data = generatePresentationContent(
-        pptPrompt, 
+        pptPrompt + " (Context: " + researchData.substring(0, 500) + ")", 
         pptSlidesCount.toString(), 
         pptTheme, 
         pptLanguage, 
         "Investor Pitch"
       );
       
+      // 3. Save to Firestore if user is logged in
+      if (user) {
+        await addDoc(collection(db, 'pitchDecks'), {
+          ...data,
+          userId: user.uid,
+          prompt: pptPrompt,
+          researchContext: researchData,
+          createdAt: serverTimestamp()
+        });
+      }
+
       setPptData(data);
       setPptProgress(100);
       setPptLoadingStep(5);
@@ -2091,6 +2261,105 @@ export default function App() {
       clearInterval(progressInterval);
       clearInterval(stepInterval);
       setTimeout(() => setIsGeneratingPPT(false), 1000);
+    }
+  };
+
+  const handleChat = async () => {
+    if (!chatInput.trim()) return;
+    const userMsg = chatInput;
+    const newMessage = { role: 'user', content: userMsg };
+    setChatMessages(prev => [...prev, newMessage]);
+    setChatInput('');
+    setIsChatLoading(true);
+
+    try {
+      const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+      
+      // Prepare history for the chat
+      const history = chatMessages.map(m => ({
+        role: m.role === 'user' ? 'user' : 'model',
+        parts: [{ text: m.content }]
+      }));
+
+      const chat = ai.chats.create({
+        model: "gemini-3.1-pro-preview",
+        config: {
+          systemInstruction: "You are FounderAI Co-Pilot, a world-class startup strategist and venture capital expert. Your goal is to help founders build billion-dollar companies. Provide deep, actionable insights on business models, unit economics, fundraising, and product-market fit. Be visionary yet practical. Use professional, encouraging language. If the user asks about their pitch deck, refer to the data they've provided in the app if possible.",
+        },
+        history: history,
+      });
+
+      const response = await chat.sendMessage({ 
+        message: userMsg 
+      });
+
+      const modelResponse = response.text || "I'm sorry, I couldn't process that.";
+      setChatMessages(prev => [...prev, { role: 'model', content: modelResponse }]);
+    } catch (error) {
+      console.error("Chat error:", error);
+      setChatMessages(prev => [...prev, { role: 'model', content: "Error: " + (error instanceof Error ? error.message : "Unknown error") }]);
+    } finally {
+      setIsChatLoading(false);
+    }
+  };
+
+  const handleTTS = async (text: string) => {
+    if (isSpeaking) return;
+    setIsSpeaking(true);
+    try {
+      const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash-preview-tts",
+        contents: [{ parts: [{ text: `Say professionally: ${text}` }] }],
+        config: {
+          responseModalities: [Modality.AUDIO],
+          speechConfig: {
+            voiceConfig: {
+              prebuiltVoiceConfig: { voiceName: 'Kore' },
+            },
+          },
+        },
+      });
+
+      const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+      if (base64Audio) {
+        const audio = new Audio(`data:audio/mp3;base64,${base64Audio}`);
+        audio.onended = () => setIsSpeaking(false);
+        audio.play();
+      } else {
+        setIsSpeaking(false);
+      }
+    } catch (error) {
+      console.error("TTS Error:", error);
+      setIsSpeaking(false);
+    }
+  };
+
+  const handleDeepAnalysis = async () => {
+    if (!pptData) return;
+    setIsThinking(true);
+    setThinkingResult(null);
+    try {
+      const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+      const response = await ai.models.generateContent({
+        model: "gemini-3.1-pro-preview",
+        contents: `Perform a deep strategic analysis of this startup pitch:
+        Title: ${pptData.presentationTitle}
+        Subtitle: ${pptData.subtitle}
+        Slides: ${JSON.stringify(pptData.slides.map(s => ({ title: s.title, content: s.content })))}
+        
+        Identify 3 critical risks and 3 massive opportunities. Provide actionable advice for the founder.`,
+        config: {
+          thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH }
+        }
+      });
+      
+      setThinkingResult(response.text || "Analysis complete.");
+    } catch (error) {
+      console.error("Thinking Error:", error);
+      setThinkingResult("Deep analysis failed. Please try again.");
+    } finally {
+      setIsThinking(false);
     }
   };
 
@@ -2107,20 +2376,20 @@ export default function App() {
       const slide = pptx.addSlide();
       
       // Background
-      slide.background = { color: theme.bgColor.replace('#','') };
+      slide.background = { color: (theme.bgColor || '#000000').replace('#','') };
       
       // Top accent bar
       if (slideData.layoutType !== 'title') {
         slide.addShape(pptx.ShapeType.rect, {
           x: 0, y: 0, w: '100%', h: 0.08,
-          fill: { color: theme.accentColor.replace('#','') }
+          fill: { color: (theme.accentColor || '#3B82F6').replace('#','') }
         });
       }
 
       // Title
       slide.addText(slideData.title, {
         x: 0.5, y: 0.5, w: '90%', h: 0.8,
-        fontSize: 32, color: theme.titleColor.replace('#',''),
+        fontSize: 32, color: (theme.titleColor || '#FFFFFF').replace('#',''),
         bold: true, align: pptx.AlignH.left,
         fontFace: 'Inter'
       });
@@ -2129,7 +2398,7 @@ export default function App() {
       if (slideData.content) {
         slide.addText(slideData.content, {
           x: 0.5, y: 1.4, w: '90%', h: 1,
-          fontSize: 18, color: theme.textColor.replace('#',''),
+          fontSize: 18, color: (theme.textColor || '#E5E7EB').replace('#',''),
           align: pptx.AlignH.left,
           fontFace: 'Inter'
         });
@@ -2141,7 +2410,7 @@ export default function App() {
           slideData.bulletPoints.map(p => `• ${p}`).join('\n'), 
           {
             x: 0.5, y: 2.5, w: '90%', h: 3,
-            fontSize: 16, color: theme.textColor.replace('#',''),
+            fontSize: 16, color: (theme.textColor || '#E5E7EB').replace('#',''),
             align: pptx.AlignH.left,
             fontFace: 'Inter',
             lineSpacing: 24
@@ -2155,13 +2424,13 @@ export default function App() {
           const xPos = 0.5 + (idx * 2.5);
           slide.addText(stat.value, {
             x: xPos, y: 4.5, w: 2, h: 0.5,
-            fontSize: 28, color: theme.accentColor.replace('#',''),
+            fontSize: 28, color: (theme.accentColor || '#3B82F6').replace('#',''),
             bold: true, align: pptx.AlignH.left,
             fontFace: 'Inter'
           });
           slide.addText(stat.label, {
             x: xPos, y: 5.0, w: 2, h: 0.3,
-            fontSize: 12, color: theme.textColor.replace('#',''),
+            fontSize: 12, color: (theme.textColor || '#E5E7EB').replace('#',''),
             align: pptx.AlignH.left,
             fontFace: 'Inter'
           });
@@ -2174,7 +2443,7 @@ export default function App() {
       }
     });
     
-    pptx.writeFile({ fileName: `${pptData.presentationTitle.replace(/\s+/g, '_')}.pptx` });
+    pptx.writeFile({ fileName: `${(pptData.presentationTitle || 'Presentation').replace(/\s+/g, '_')}.pptx` });
   };
 
   const handleGenerateMoreSlides = async () => {
@@ -2209,7 +2478,7 @@ export default function App() {
   return (
     <ErrorBoundary>
       <div className="min-h-screen bg-primary-bg flex">
-        <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} user={user} />
+        <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} user={user} onToggleChat={() => setIsChatOpen(!isChatOpen)} />
         
         <main className="flex-1 ml-16 xl:ml-64 p-4 md:p-8 overflow-x-hidden">
           <AnimatePresence mode="wait">
@@ -2580,6 +2849,38 @@ export default function App() {
                     </button>
                   </div>
                 </motion.div>
+                {/* CARD 5: Thinking Mode Analysis */}
+                {result?.thinkingAnalysis && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.5 }}
+                    className="bg-gray-900 rounded-2xl p-6 border border-border md:col-span-2"
+                  >
+                    <div className="flex items-center gap-4 mb-6">
+                      <div className="w-12 h-12 bg-amber-500/20 rounded-full flex items-center justify-center text-amber-400">
+                        <BrainCircuit size={24} />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-bold">Deep Strategy Analysis</h3>
+                        <p className="text-[10px] text-amber-500 uppercase font-bold tracking-widest">High-Level Thinking Mode</p>
+                      </div>
+                    </div>
+
+                    <div className="bg-black/30 rounded-xl p-6 border border-white/5">
+                      <div className="prose prose-invert prose-sm max-w-none">
+                        <Markdown>
+                          {result.thinkingAnalysis}
+                        </Markdown>
+                      </div>
+                    </div>
+
+                    <div className="mt-6 flex items-center gap-2 text-[10px] text-gray-500">
+                      <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse" />
+                      This analysis was generated using Gemini's high-level reasoning capabilities for complex strategic planning.
+                    </div>
+                  </motion.div>
+                )}
               </div>
             </motion.div>
           )}
@@ -2600,7 +2901,7 @@ export default function App() {
                   <h3 className="text-xl font-bold text-white mb-2">Login to see your history</h3>
                   <p className="text-muted-text mb-6">Apne generated kits ko save karne ke liye login karein.</p>
                   <button 
-                    onClick={() => loginWithGoogle()}
+                    onClick={() => signInWithGoogle()}
                     className="bg-accent text-white px-8 py-3 rounded-xl font-bold hover:bg-blue-500 transition-all flex items-center gap-2 mx-auto"
                   >
                     <LogIn size={20} /> Login with Google
@@ -2718,7 +3019,7 @@ export default function App() {
                   <ChangeView center={cityCoords[selectedCity]} zoom={12} />
                   <TileLayer
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                    url={mapType === 'satellite' ? "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" : "https://{s}.tile.openstreetmap.org/{z}/{y}/{x}.react"}
+                    url={mapType === 'satellite' ? "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" : "https://{s}.tile.openstreetmap.org/{z}/{y}/{x}.png"}
                   />
                   {(result && result.city === selectedCity && result.localInvestors ? result.localInvestors : investors.filter(inv => inv.city.toLowerCase() === selectedCity.toLowerCase())).map((inv: any, idx: number) => {
                     const position: [number, number] | null = inv.lat && inv.lng ? [inv.lat, inv.lng] : null;
@@ -3101,6 +3402,8 @@ export default function App() {
                 showSpeakerNotes={showSpeakerNotes}
                 setShowSpeakerNotes={setShowSpeakerNotes}
                 onDownload={handleDownloadPPTX}
+                onTTS={handleTTS}
+                isSpeaking={isSpeaking}
                 onRegenerate={() => {
                   setPptData(null);
                   setCurrentSlideIndex(0);
@@ -3114,6 +3417,156 @@ export default function App() {
             )}
         </AnimatePresence>
       </main>
+      {/* Chat Panel (AI Co-Pilot) */}
+      <AnimatePresence>
+        {isChatOpen && (
+          <motion.div 
+            initial={{ x: 400, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: 400, opacity: 0 }}
+            className="fixed top-4 right-4 bottom-4 w-[400px] bg-[#0B121F]/95 backdrop-blur-xl border border-white/10 z-[100] flex flex-col shadow-[0_0_50px_rgba(0,0,0,0.5)] rounded-3xl overflow-hidden"
+          >
+            {/* Header */}
+            <div className="p-6 border-b border-white/5 flex items-center justify-between bg-gradient-to-r from-accent/10 to-transparent">
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <div className="w-12 h-12 bg-accent/20 rounded-2xl flex items-center justify-center border border-accent/30">
+                    <BrainCircuit className="text-accent w-6 h-6" />
+                  </div>
+                  <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-4 border-[#0B121F] rounded-full" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white tracking-tight">FounderAI Co-Pilot</h3>
+                  <p className="text-[10px] text-accent font-semibold uppercase tracking-widest">Advanced Strategy Engine</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setIsChatOpen(false)} 
+                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/5 text-gray-500 hover:text-white transition-all"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Messages Area */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+              {chatMessages.length === 0 && (
+                <div className="space-y-8 py-4">
+                  <div className="text-center space-y-4">
+                    <div className="w-20 h-20 bg-accent/5 rounded-full flex items-center justify-center mx-auto border border-accent/10">
+                      <Sparkles className="text-accent/40 w-10 h-10" />
+                    </div>
+                    <div className="space-y-2">
+                      <h4 className="text-white font-bold text-lg">Welcome, Founder!</h4>
+                      <p className="text-sm text-gray-400 px-4 leading-relaxed">
+                        I'm your dedicated AI Co-Pilot. I can help you refine your pitch, analyze market trends, or find the perfect investors.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-3">
+                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest px-2">Quick Actions</p>
+                    {[
+                      { icon: Presentation, text: "Review my pitch deck", prompt: "Can you review my current pitch deck and suggest improvements?" },
+                      { icon: TrendingUp, text: "Analyze market size", prompt: "Help me calculate the TAM, SAM, and SOM for my startup idea." },
+                      { icon: Users, text: "Find target investors", prompt: "Who are the top 5 investors I should target for my startup?" },
+                      { icon: Mail, text: "Draft investor email", prompt: "Draft a compelling cold email for a Seed round investor." }
+                    ].map((action, i) => (
+                      <button
+                        key={i}
+                        onClick={() => {
+                          setChatInput(action.prompt);
+                          // We don't auto-send to give user a chance to edit
+                        }}
+                        className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/5 hover:border-accent/30 hover:bg-accent/5 transition-all text-left group"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center group-hover:bg-accent/20 transition-all">
+                          <action.icon className="w-4 h-4 text-gray-400 group-hover:text-accent" />
+                        </div>
+                        <span className="text-xs text-gray-300 group-hover:text-white font-medium">{action.text}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {chatMessages.map((msg, i) => (
+                <div key={i} className={cn("flex flex-col gap-2", msg.role === 'user' ? "items-end" : "items-start")}>
+                  <div className={cn(
+                    "max-w-[90%] p-4 rounded-2xl text-sm leading-relaxed shadow-lg",
+                    msg.role === 'user' 
+                      ? "bg-accent text-white rounded-tr-none" 
+                      : "bg-gray-800/50 text-gray-200 rounded-tl-none border border-white/5 backdrop-blur-sm"
+                  )}>
+                    <div className="prose prose-invert prose-sm max-w-none">
+                      <Markdown>
+                        {msg.content}
+                      </Markdown>
+                    </div>
+                  </div>
+                  {msg.role === 'assistant' && (
+                    <div className="flex items-center gap-2 px-2">
+                      <button 
+                        onClick={() => handleTTS(msg.content)}
+                        className={cn(
+                          "p-1.5 rounded-lg hover:bg-white/5 transition-all",
+                          isSpeaking ? "text-accent" : "text-gray-500"
+                        )}
+                        title="Listen to response"
+                      >
+                        <Volume2 size={14} />
+                      </button>
+                      <button className="p-1.5 rounded-lg hover:bg-white/5 text-gray-500 transition-all" title="Copy response">
+                        <Quote size={14} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+              
+              {isChatLoading && (
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center gap-2 text-[10px] text-accent font-bold uppercase tracking-widest ml-2">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    AI is thinking...
+                  </div>
+                  <div className="bg-gray-800/30 p-4 rounded-2xl rounded-tl-none border border-white/5 w-2/3">
+                    <div className="flex gap-1">
+                      <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1, repeat: Infinity }} className="w-1.5 h-1.5 bg-accent rounded-full" />
+                      <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1, repeat: Infinity, delay: 0.2 }} className="w-1.5 h-1.5 bg-accent rounded-full" />
+                      <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1, repeat: Infinity, delay: 0.4 }} className="w-1.5 h-1.5 bg-accent rounded-full" />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Input Area */}
+            <div className="p-6 border-t border-white/5 bg-gray-900/50">
+              <div className="relative">
+                <input 
+                  type="text" 
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleChat()}
+                  placeholder="Ask me anything..."
+                  className="w-full bg-gray-800/50 border border-white/10 rounded-2xl pl-4 pr-14 py-4 text-sm text-white focus:border-accent focus:ring-1 focus:ring-accent outline-none transition-all placeholder:text-gray-500"
+                />
+                <button 
+                  onClick={handleChat}
+                  disabled={isChatLoading || !chatInput.trim()}
+                  className="absolute right-2 top-2 bottom-2 w-10 bg-accent hover:bg-blue-500 text-white rounded-xl flex items-center justify-center transition-all disabled:opacity-50 disabled:scale-95 shadow-lg shadow-accent/20"
+                >
+                  <Send className="w-4 h-4" />
+                </button>
+              </div>
+              <p className="text-[10px] text-center text-gray-500 mt-4">
+                FounderAI can make mistakes. Verify important information.
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
     </ErrorBoundary>
   );
