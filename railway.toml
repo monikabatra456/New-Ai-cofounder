@@ -1,0 +1,7 @@
+[build]
+builder = "nixpacks"
+buildCommand = "npm run build"
+
+[deploy]
+startCommand = "node --loader tsx server.ts"
+runtime = "V2"
