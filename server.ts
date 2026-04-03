@@ -5,6 +5,8 @@ import path from "path";
 import cors from "cors";
 import Groq from "groq-sdk";
 import { Resend } from "resend";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 
 // API Key Validation
 function getFirstEnv(...keys: string[]) {
@@ -79,6 +81,32 @@ async function startServer() {
 
   app.use(express.json());
   app.use(cors());
+
+  // Security headers for production
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+          "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://unpkg.com", "https://cdn.jsdelivr.net"],
+          "img-src": ["'self'", "data:", "https:", "http:", "https://*.tile.openstreetmap.org"],
+          "connect-src": ["'self'", "https:", "http:", "ws:", "wss:"],
+        },
+      },
+    })
+  );
+
+  // Rate limiting to prevent API abuse
+  const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // limit each IP to 100 requests per windowMs
+    message: "Too many requests from this IP, please try again after 15 minutes",
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
+  // Apply rate limiter to API routes only
+  app.use("/api/", limiter);
 
   app.get("/api/debug-env", (req, res) => {
     res.json({ keys: Object.keys(process.env) });

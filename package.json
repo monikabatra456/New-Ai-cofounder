@@ -5,7 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
-    "build": "vite build",
+    "build": "npm run clean && npm run build:client && npm run build:server",
+    "build:client": "vite build",
+    "build:server": "esbuild server.ts --bundle --platform=node --format=esm --outfile=dist/server.js --external:vite --external:express --external:groq-sdk --external:resend --external:cors --external:dotenv --external:helmet --external:express-rate-limit",
+    "start": "node dist/server.js",
     "preview": "vite preview",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit"
@@ -45,6 +48,9 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "autoprefixer": "^10.4.21",
+    "esbuild": "^0.27.7",
+    "express-rate-limit": "^8.3.2",
+    "helmet": "^8.1.0",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.21.0",
     "typescript": "~5.8.2",
