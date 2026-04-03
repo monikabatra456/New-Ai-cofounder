@@ -57,6 +57,11 @@ export interface AIResult {
   thinkingAnalysis?: string;
   groundingSources?: { title: string; uri: string }[];
   localInvestors?: Investor[];
+  fullMarketResearch?: string;
+  startupName?: string;
+  marketGrowth?: string;
+  marketTrends?: string[];
+  riskLevel?: "Low" | "Medium" | "High";
 }
 
 export interface PPTSlide {

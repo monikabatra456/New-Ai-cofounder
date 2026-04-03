@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import './animations.css';
 import { 
   Home as HomeIcon, 
   BarChart3, 
@@ -46,7 +47,8 @@ import {
   TrendingUp,
   Award,
   Volume2,
-  BrainCircuit
+  BrainCircuit,
+  Share2
 } from 'lucide-react';
 import { cn } from './lib/utils';
 import PptxGenJS from 'pptxgenjs';
@@ -561,36 +563,48 @@ const MeetingScheduler = ({
     setIsScheduling(false);
     setSuccess(true);
     confetti({
-      particleCount: 100,
+      particleCount: 150,
       spread: 70,
-      origin: { y: 0.6 }
+      origin: { y: 0.6 },
+      colors: ['#10B981', '#3B82F6', '#F59E0B']
     });
   };
 
   if (finalSuccess) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-center">
+      <div className="flex flex-col items-center justify-center py-20 text-center relative overflow-hidden">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-accent/5 rounded-full blur-[100px] animate-pulse" />
+        
         <motion.div 
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="bg-[#111827] border border-gray-800 rounded-[24px] p-12 max-w-[420px] w-full"
+          initial={{ scale: 0.9, opacity: 0, y: 30 }}
+          animate={{ scale: 1, opacity: 1, y: 0 }}
+          className="bg-[#111827]/80 backdrop-blur-xl border border-gray-800 rounded-[32px] p-12 max-w-[480px] w-full shadow-2xl relative z-10 animate-float"
         >
-          <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircle2 className="w-10 h-10 text-green-400" />
+          <div className="relative w-24 h-24 mx-auto mb-8">
+            <div className="absolute inset-0 bg-green-500/20 rounded-full animate-ping" />
+            <div className="relative w-full h-full bg-green-500/20 rounded-full flex items-center justify-center border border-green-500/30">
+              <Award className="w-12 h-12 text-green-400" />
+            </div>
           </div>
-          <h2 className="text-2xl font-bold text-white mb-2">Meeting Scheduled!</h2>
-          <p className="text-gray-400 mb-8">
-            Your meeting with {selectedInvestor.name} has been confirmed. Check your email for the calendar invite.
+
+          <h2 className="text-3xl font-bold text-white mb-3 premium-gradient-text">Congratulation! 🎉</h2>
+          <p className="text-lg font-medium text-gray-300 mb-2">Meeting Successfully Fixed</p>
+          <p className="text-gray-400 mb-10 leading-relaxed">
+            Your high-stakes meeting with <span className="text-white font-bold">{selectedInvestor.name}</span> has been locked in. Check your email for the detailed brief and calendar invite.
           </p>
-          <button
-            onClick={() => {
-              setSuccess(false);
-              setActiveSubTab('meetings');
-            }}
-            className="w-full py-4 bg-accent hover:bg-blue-600 text-white font-bold rounded-xl transition-all"
-          >
-            View My Meetings
-          </button>
+
+          <div className="space-y-3">
+            <button
+              onClick={() => {
+                setSuccess(false);
+                setActiveSubTab('meetings');
+              }}
+              className="w-full py-4 bg-accent hover:bg-blue-600 text-white font-bold rounded-2xl shadow-lg shadow-accent/25 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+            >
+              View My Meetings <ArrowRight size={18} />
+            </button>
+            <p className="text-[11px] text-gray-500 uppercase tracking-widest font-bold">Press View to manage your session</p>
+          </div>
         </motion.div>
       </div>
     );
@@ -950,6 +964,7 @@ function generateMockDashboard(idea: string, city: string) {
     startupName,
     marketSize: s.tam,
     marketAnalysisDetails: `The ${topic} market in ${city} is experiencing a massive shift towards digital-first solutions. With a projected growth rate of ${s.growth}, there is a significant opportunity for ${startupName} to capture a large share of the ${s.users} active users.`,
+    fullMarketResearch: `**Comprehensive Market Research Report for ${startupName}**\n\n**1. Industry Overview (${topic})**\nThe ${topic} industry in ${city} represents an addressable market worth ${s.tam}. Due to changing consumer habits and technology adoption post-2020, the sector has seen a compound annual growth rate (CAGR) of ${s.growth}.\n\n**2. Competitive Landscape**\nCurrently, the market is dominated by players like ${s.competitors.join(', ')}. While these incumbents possess significant capital, they suffer from legacy technological debt and slower innovation cycles.\n\n**3. Target Audience & Adoption**\nThe core user base comprises ${s.users} early adopters. There is an untapped opportunity in tier-2 expansions and micro-segmentation which ${startupName} can uniquely exploit.\n\n**4. Strategic Risks & Mitigation**\n- *Risk:* High CAC (Customer Acquisition Cost) on digital platforms.\n- *Mitigation:* Leveraging viral product loops and community-led growth.\n\nOverall Opportunity Score: 9.2/10.`,
     opportunityScore: 9.2,
     competitors: s.competitors.map(name => ({ name, strength: "High", weakness: "Legacy Systems" })),
     pitchSlides: [
@@ -963,7 +978,25 @@ function generateMockDashboard(idea: string, city: string) {
     },
     targetCustomer: "Millennials and Gen Z",
     revenueModel: "Subscription and Transaction fees",
-    localInvestors: investors.filter(inv => inv.city === city || city === "All")
+    localInvestors: investors.filter(inv => inv.city === city || city === "All"),
+    marketGrowth: s.growth,
+    marketTrends: ["Digital Transformation", "Sustainability", "Direct-to-Consumer", "AI-Powered Personalization"],
+    riskLevel: "Medium" as const,
+    thinkingAnalysis: `### 🧠 Strategic Deep-Dive: ${startupName}
+
+#### 🎯 Market Entry & Moat
+- **Hyper-Local Focus**: By starting in **${city}**, you can achieve density and viral growth before national expansion.
+- **Data Advantage**: Proprietary analysis of **${s.users}** active users provides a specialized data moat that global incumbents lack.
+- **Vertical Integration**: Controlling the end-to-end user experience in **${topic}** will yield higher margins than horizontal platforms.
+
+#### ⚖️ Risk-Opportunity Matrix
+- **Critical Risk**: Platform disintermediation. *Mitigation:* Focus on high-frequency user touchpoints and community rewards.
+- **Massive Opportunity**: Tier-2 & Tier-3 city expansion represents a **$${(Number(s.tam.replace(/[\$B]/g,'')) * 1.5).toFixed(1)}B** untapped market.
+
+#### 🚀 Scaling Path (0-100)
+1. **Pilot Phase**: Onboard 50 high-value power users in **${city}**.
+2. **Growth Loop**: Implement referral mechanics to reduce CAC by **35%**.
+3. **Series A**: Target **$${(Number(s.tam.replace(/[\$B]/g,'')) * 0.1).toFixed(1)}B** GMV before seeking institutional capital.`
   };
 }
 
@@ -984,6 +1017,18 @@ const MyMeetings = ({
   meetings: Meeting[]; 
   onCancel: (id: string) => void;
 }) => {
+  const [reminders, setReminders] = useState<Record<string, boolean>>({});
+
+  const handleSetReminder = (id: string) => {
+    setReminders(prev => ({...prev, [id]: true}));
+    confetti({
+      particleCount: 50,
+      spread: 40,
+      origin: { y: 0.8 },
+      colors: ['#4ade80', '#3b82f6']
+    });
+  };
+
   if (meetings.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -1112,13 +1157,26 @@ const MyMeetings = ({
               </div>
 
               {!isCancelled && (
-                <div className="px-6 py-4 bg-black/20 border-t border-gray-800 flex justify-end">
+                <div className="px-6 py-4 bg-black/20 border-t border-gray-800 flex justify-between items-center">
+                  <button
+                    onClick={() => handleSetReminder(meeting.id)}
+                    disabled={reminders[meeting.id]}
+                    className={cn(
+                      "text-[10px] flex items-center gap-1 transition-all px-3 py-1.5 rounded-lg",
+                      reminders[meeting.id] 
+                        ? "bg-green-500/20 text-green-400 cursor-not-allowed" 
+                        : "bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 cursor-pointer"
+                    )}
+                  >
+                    <Clock className="w-3 h-3" />
+                    {reminders[meeting.id] ? "Reminder Set ✓" : "Set Reminder"}
+                  </button>
                   <button
                     onClick={() => onCancel(meeting.id)}
-                    className="text-[10px] text-red-400 hover:text-red-300 flex items-center gap-1 transition-colors"
+                    className="text-[10px] text-red-400 hover:bg-red-500/10 flex items-center gap-1 transition-colors px-3 py-1.5 rounded-lg"
                   >
                     <Trash2 className="w-3 h-3" />
-                    Cancel Meeting
+                    Cancel
                   </button>
                 </div>
               )}
@@ -1843,55 +1901,73 @@ const Sidebar = ({ activeTab, setActiveTab, user, onToggleChat }: { activeTab: s
 };
 
 const LoadingOverlay = ({ step }: { step: number }) => {
+  const [currentStep, setCurrentStep] = useState(0);
   const steps = [
-    "🔍 Idea analyze ho rahi hai...",
-    "📈 Market research chal rahi hai...",
-    "🎨 Pitch deck ban rahi hai...",
-    "📍 Investors dhundh rahe hain..."
+    { text: "🔍 Analyzing Idea...", icon: <BrainCircuit className="w-5 h-5" /> },
+    { text: "📈 Market Research...", icon: <TrendingUp className="w-5 h-5" /> },
+    { text: "🎨 Designing Pitch...", icon: <Presentation className="w-5 h-5" /> },
+    { text: "📍 Finding Investors...", icon: <MapPin className="w-5 h-5" /> }
   ];
 
+  // Logic to advance steps based on 'step' prop or internal timer if needed
+  // For now, we'll just use the 'step' prop passed from App
+
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-xl z-[200] flex items-center justify-center p-4">
       <motion.div 
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="bg-gray-900 border border-border rounded-2xl p-8 max-w-sm w-full text-center"
+        className="bg-gray-900/50 border border-gray-700/50 rounded-3xl p-10 max-w-md w-full text-center relative overflow-hidden"
       >
-        <div className="relative w-16 h-16 mx-auto mb-6">
-          <div className="absolute inset-0 border-4 border-accent/20 rounded-full" />
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-accent/0 via-accent to-accent/0 animate-progress-flow" />
+        
+        <div className="relative w-24 h-24 mx-auto mb-8">
+          <div className="absolute inset-0 border-4 border-accent/10 rounded-full" />
           <motion.div 
             animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-            className="absolute inset-0 border-4 border-t-accent rounded-full"
+            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+            className="absolute inset-0 border-4 border-t-accent border-r-accent/30 rounded-full"
           />
+          <div className="absolute inset-4 bg-accent/10 rounded-full flex items-center justify-center">
+            <Sparkles className="w-8 h-8 text-accent animate-pulse" />
+          </div>
         </div>
 
-        <AnimatePresence mode="wait">
-          <motion.p 
-            key={step}
-            initial={{ y: 10, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: -10, opacity: 0 }}
-            className="text-lg font-medium text-white mb-4"
-          >
-            {steps[step]}
-          </motion.p>
-        </AnimatePresence>
-
-        <div className="w-full bg-gray-800 h-2 rounded-full overflow-hidden mb-2">
-          <motion.div 
-            initial={{ width: 0 }}
-            animate={{ width: `${(step + 1) * 25}%` }}
-            className="h-full bg-accent"
-          />
+        <h2 className="text-2xl font-bold text-white mb-6 premium-gradient-text">Co-Founder is building...</h2>
+        
+        <div className="space-y-4 text-left">
+          {steps.map((s, i) => (
+            <motion.div 
+              key={i}
+              initial={{ opacity: 0.3, x: -10 }}
+              animate={{ 
+                opacity: step >= i ? 1 : 0.3, 
+                x: step >= i ? 0 : -10,
+                scale: step === i ? 1.05 : 1
+              }}
+              className={cn(
+                "flex items-center gap-3 p-3 rounded-xl transition-all border border-transparent",
+                step === i ? "bg-accent/10 border-accent/20 step-active shadow-[0_0_15px_rgba(59,130,246,0.1)]" : "",
+                step > i ? "text-green-400" : "text-gray-400"
+              )}
+            >
+              {step > i ? <CheckCircle2 className="w-5 h-5" /> : s.icon}
+              <span className="text-sm font-medium">{s.text}</span>
+              {step === i && <Loader2 className="w-4 h-4 animate-spin ml-auto" />}
+            </motion.div>
+          ))}
         </div>
-        <p className="text-xs text-muted-text">Please wait, yeh 6-8 seconds leta hai</p>
+
+        <p className="mt-8 text-[11px] text-gray-500 font-medium tracking-wide flex items-center justify-center gap-2">
+          ⚡ This will only take a few seconds
+        </p>
       </motion.div>
     </div>
   );
 };
 
 export default function App() {
+  const [showAnalysisModal, setShowAnalysisModal] = useState(false);
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [isGeneratingSlides, setIsGeneratingSlides] = useState(false);
@@ -2221,7 +2297,7 @@ export default function App() {
 
     const stepInterval = setInterval(() => {
       setPptLoadingStep(prev => Math.min(prev + 1, 5));
-    }, 800);
+    }, 100);
 
     const progressInterval = setInterval(() => {
       setPptProgress(prev => {
@@ -2229,9 +2305,9 @@ export default function App() {
           clearInterval(progressInterval);
           return 100;
         }
-        return prev + 2;
+        return prev + 10;
       });
-    }, 100);
+    }, 15);
 
     try {
       // 1. Try Google Search Grounding, but do not fail generation if API call fails.
@@ -2481,7 +2557,7 @@ export default function App() {
     setIsGeneratingSlides(true);
     try {
       // Mocking additional slides for Zero API
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise(resolve => setTimeout(resolve, 600));
       const newSlides = [
         { slideNumber: result.pitchSlides.length + 1, title: "Future Roadmap", content: "Our vision for the next 24 months." },
         { slideNumber: result.pitchSlides.length + 2, title: "Financial Projections", content: "Projected revenue growth and profitability." }
@@ -2536,30 +2612,31 @@ export default function App() {
                 <p className="text-xl text-muted-text">Idea se funding tak — seconds mein</p>
               </div>
 
-              <div className="bg-card-bg border border-border rounded-2xl p-8 shadow-2xl">
-                <label className="block text-sm text-muted-text mb-2">Apna startup idea batao</label>
+              <div className="glass-card-glow border border-border/30 rounded-2xl p-8 shadow-2xl relative overflow-hidden group">
+                <div className="absolute inset-0 bg-gradient-to-tr from-accent/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+                <label className="block text-sm text-muted-text mb-2 relative z-10">Apna startup idea batao</label>
                 <textarea 
                   rows={6}
                   value={idea}
                   onChange={(e) => setIdea(e.target.value)}
                   placeholder="Example: Main ek app banana chahta hoon jisse college students apne notes sell kar sakein..."
-                  className="w-full bg-gray-800/50 text-white border border-gray-700 rounded-xl p-4 text-sm focus:border-accent focus:ring-1 focus:ring-accent outline-none resize-none transition-all"
+                  className="w-full bg-gray-800/50 text-white border border-gray-700 rounded-xl p-4 text-sm focus:border-accent focus:ring-1 focus:ring-accent outline-none resize-none transition-all relative z-10"
                 />
 
-                <div className="flex items-center gap-4 my-8">
+                <div className="flex items-center gap-4 my-8 relative z-10">
                   <div className="flex-1 h-px bg-border" />
                   <span className="text-xs text-gray-600 font-bold uppercase tracking-widest">Aur</span>
                   <div className="flex-1 h-px bg-border" />
                 </div>
 
-                <label className="block text-sm text-muted-text mb-3">Apna shehar chuno</label>
-                <div className="flex gap-3 flex-wrap">
+                <label className="block text-sm text-muted-text mb-3 relative z-10">Apna shehar chuno</label>
+                <div className="flex gap-3 flex-wrap relative z-10">
                   {cities.map(city => (
                     <button
                       key={city}
                       onClick={() => setSelectedCity(city)}
                       className={cn(
-                        "px-4 py-2 rounded-full border text-sm transition-all",
+                        "px-4 py-2 rounded-full border text-sm transition-all relative z-10",
                         selectedCity === city 
                           ? "bg-accent text-white border-accent" 
                           : "bg-gray-800 text-muted-text border-gray-700 hover:border-gray-500"
@@ -2573,7 +2650,7 @@ export default function App() {
                 <button 
                   onClick={handleGenerate}
                   disabled={!idea.trim() || isLoading}
-                  className="mt-8 w-full h-14 bg-accent hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-lg rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2"
+                  className="mt-8 w-full h-14 bg-accent hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-lg rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2 relative z-10"
                 >
                   Generate My Co-Founder Kit 🚀
                 </button>
@@ -2584,12 +2661,12 @@ export default function App() {
                     const data = await res.json();
                     console.log("Available Secret Names: " + data.keys.join(", "));
                   }}
-                  className="mt-4 w-full text-[10px] text-gray-600 hover:text-gray-400 underline"
+                  className="mt-4 w-full text-[10px] text-gray-600 hover:text-gray-400 underline relative z-10"
                 >
                   Debug: Check Secret Names
                 </button>
 
-                <div className="mt-6 flex justify-center gap-3 flex-wrap">
+                <div className="mt-6 flex justify-center gap-3 flex-wrap relative z-10">
                   {["📊 Market Research", "📑 Pitch Deck", "📍 Investor Map", "✉️ Email Draft"].map(f => (
                     <span key={f} className="text-[10px] md:text-xs text-gray-500 bg-gray-800/30 px-3 py-1 rounded-full border border-gray-800/50">
                       {f}
@@ -2626,72 +2703,185 @@ export default function App() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1 }}
-                  className="bg-gray-900 rounded-2xl p-6 border border-border relative overflow-hidden group"
+                  className="glass-card-glow rounded-3xl p-8 border border-border/30 relative overflow-hidden group"
                 >
-                  <div className="absolute left-0 top-6 bottom-6 w-1 bg-accent rounded-r-full" />
-                  <div className="flex items-center gap-4 mb-6">
-                    <div className="w-12 h-12 bg-accent/20 rounded-full flex items-center justify-center text-accent">
+                  <div className="absolute inset-0 bg-gradient-to-tr from-accent/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                  <div className="absolute left-0 top-6 bottom-6 w-1 bg-gradient-to-b from-accent to-accent/20 rounded-r-full" />
+                  <div className="flex items-center gap-4 mb-6 relative z-10">
+                    <motion.div 
+                      className="w-12 h-12 bg-accent/20 rounded-full flex items-center justify-center text-accent border border-accent/30 group-hover:border-accent/60 transition-colors"
+                      whileHover={{ rotate: 360 }}
+                      transition={{ duration: 0.6 }}
+                    >
                       <BarChart3 size={24} />
+                    </motion.div>
+                    <div className="flex flex-col">
+                      <h3 className="text-lg font-bold flex items-center gap-2">
+                        Market Analysis
+                        {result?.riskLevel && (
+                          <span className={cn(
+                            "text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-widest",
+                            result.riskLevel === "Low" ? "bg-green-500/20 text-green-400" :
+                            result.riskLevel === "Medium" ? "bg-amber-500/20 text-amber-400" :
+                            "bg-red-500/20 text-red-400"
+                          )}>
+                            {result.riskLevel} Risk
+                          </span>
+                        )}
+                      </h3>
+                      <p className="text-[10px] text-accent font-medium uppercase tracking-widest">Deep Insights • {result?.marketGrowth || "28%"} CAGR</p>
                     </div>
-                    <h3 className="text-lg font-bold">Market Analysis</h3>
                   </div>
 
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between py-3 border-b border-gray-800">
-                      <span className="text-muted-text">Market Size</span>
-                      <span className="text-accent font-bold text-xl">{result?.marketSize || "$2.4B"}</span>
+                  <div className="space-y-4 relative z-10">
+                    {/* TAM/SAM/SOM Breakdown */}
+                    <div className="grid grid-cols-3 gap-3 mb-6 p-4 bg-black/30 rounded-xl border border-accent/10">
+                      <motion.div 
+                        initial={{ opacity: 0, scale: 0.8 }} 
+                        animate={{ opacity: 1, scale: 1 }} 
+                        transition={{ delay: 0.2 }}
+                        className="text-center"
+                      >
+                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">TAM</p>
+                        <p className="text-sm font-bold text-accent">{result?.marketSize || "$8.4B"}</p>
+                        <p className="text-[9px] text-gray-500 mt-1">Total Market</p>
+                      </motion.div>
+                      <motion.div 
+                        initial={{ opacity: 0, scale: 0.8 }} 
+                        animate={{ opacity: 1, scale: 1 }} 
+                        transition={{ delay: 0.3 }}
+                        className="text-center border-l border-r border-gray-700"
+                      >
+                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">SAM</p>
+                        <p className="text-sm font-bold text-blue-400">${(Number(result?.marketSize?.replace(/[\$B]/g, '') || 8.4) * 0.3).toFixed(1)}B</p>
+                        <p className="text-[9px] text-gray-500 mt-1">Serviceable</p>
+                      </motion.div>
+                      <motion.div 
+                        initial={{ opacity: 0, scale: 0.8 }} 
+                        animate={{ opacity: 1, scale: 1 }} 
+                        transition={{ delay: 0.4 }}
+                        className="text-center"
+                      >
+                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">SOM</p>
+                        <p className="text-sm font-bold text-green-400">${(Number(result?.marketSize?.replace(/[\$B]/g, '') || 8.4) * 0.05).toFixed(1)}B</p>
+                        <p className="text-[9px] text-gray-500 mt-1">Obtainable</p>
+                      </motion.div>
                     </div>
+
+                    <div className="grid grid-cols-2 gap-4 py-3 border-b border-gray-800">
+                      <div>
+                        <p className="text-[10px] text-muted-text mb-1 uppercase font-bold tracking-wider">Target Customer</p>
+                        <p className="text-xs text-white font-medium">{result?.targetCustomer || "Millennials & Gen Z"}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-muted-text mb-1 uppercase font-bold tracking-wider">Growth Potential</p>
+                        <div className="flex items-center gap-1.5 text-green-400 text-xs font-bold">
+                          <TrendingUp size={12} /> Very High
+                        </div>
+                      </div>
+                    </div>
+
                     <div className="py-3 border-b border-gray-800">
-                      <p className="text-xs text-muted-text mb-2 uppercase font-bold tracking-wider">Analysis Details</p>
-                      <p className="text-sm text-gray-300 leading-relaxed">{result?.marketAnalysisDetails}</p>
+                      <p className="text-[10px] text-muted-text mb-2 uppercase font-bold tracking-wider">Top Trends</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {result?.marketTrends?.map((trend, i) => (
+                          <span key={i} className="text-[9px] bg-white/5 border border-white/10 px-2 py-0.5 rounded-lg text-gray-400">
+                            {trend}
+                          </span>
+                        ))}
+                      </div>
                     </div>
+
+                    <div className="py-3 border-b border-gray-800">
+                      <p className="text-[10px] text-muted-text mb-2 uppercase font-bold tracking-wider">Analysis Summary</p>
+                      <p className="text-xs text-gray-300 leading-relaxed italic line-clamp-2">"{result?.marketAnalysisDetails}"</p>
+                    </div>
+                    
                     <div className="flex items-center justify-between py-3 border-b border-gray-800">
                       <span className="text-muted-text">Competitors Found</span>
-                      <span className="text-white font-medium">{result?.competitors.length || 3} companies</span>
+                      <motion.span 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.5 }}
+                        className="text-white font-medium bg-accent/20 px-3 py-1 rounded-full"
+                      >
+                        {result?.competitors.length || 3} companies
+                      </motion.span>
                     </div>
+                    
                     <div className="flex items-center justify-between py-3">
                       <span className="text-muted-text">Opportunity Score</span>
-                      <div className="flex items-center gap-1">
-                        <span className="text-amber-500 font-bold">{(result?.opportunityScore || 8.5) / 2}</span>
-                        <div className="flex text-amber-500">
-                          {[1, 2, 3, 4, 5].map(s => <span key={s}>★</span>)}
+                      <div className="flex items-center gap-2">
+                        <motion.div 
+                          className="relative"
+                          animate={{ scale: [1, 1.05, 1] }}
+                          transition={{ duration: 2, repeat: Infinity }}
+                        >
+                          <span className="text-amber-400 font-bold text-lg">{(result?.opportunityScore || 8.5) / 2}</span>
+                        </motion.div>
+                        <div className="flex text-amber-400">
+                          {[1, 2, 3, 4, 5].map((s, i) => (
+                            <motion.span 
+                              key={s} 
+                              initial={{ opacity: 0 }} 
+                              animate={{ opacity: 1 }} 
+                              transition={{ delay: 0.6 + i * 0.05 }}
+                            >
+                              ★
+                            </motion.span>
+                          ))}
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="mt-4">
+                  <div className="mt-4 relative z-10">
                     <p className="text-xs text-muted-text mb-2 uppercase font-bold tracking-wider">Top Competitors</p>
                     <div className="flex flex-wrap gap-2">
-                      {result?.competitors.map(c => (
-                        <span key={c.name} className="bg-gray-800 text-gray-400 text-xs px-3 py-1 rounded-full border border-gray-700">
+                      {result?.competitors.map((c, i) => (
+                        <motion.span 
+                          key={c.name} 
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: 0.7 + i * 0.05 }}
+                          whileHover={{ scale: 1.05 }}
+                          className="bg-gradient-to-r from-gray-800/80 to-gray-700/60 text-gray-300 text-xs px-3 py-1 rounded-full border border-gray-600 hover:border-accent/30 cursor-default transition-colors"
+                        >
                           {c.name}
-                        </span>
+                        </motion.span>
                       ))}
                     </div>
                   </div>
 
                   {result?.groundingSources && result.groundingSources.length > 0 && (
-                    <div className="mt-6 pt-6 border-t border-gray-800">
+                    <div className="mt-6 pt-6 border-t border-gray-800 relative z-10">
                       <p className="text-xs text-muted-text mb-3 uppercase font-bold tracking-wider">Sources (Google Search)</p>
-                      <div className="space-y-2">
+                      <div className="space-y-2 max-h-[120px] overflow-y-auto">
                         {result.groundingSources.map((source, i) => (
-                          <a 
+                          <motion.a 
                             key={i} 
                             href={source.uri} 
                             target="_blank" 
                             rel="noopener noreferrer"
-                            className="flex items-center gap-2 text-[10px] text-accent hover:underline truncate"
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.8 + i * 0.05 }}
+                            whileHover={{ x: 5 }}
+                            className="flex items-center gap-2 text-[10px] text-accent hover:text-blue-300 truncate transition-colors"
                           >
                             <ExternalLink size={10} /> {source.title}
-                          </a>
+                          </motion.a>
                         ))}
                       </div>
                     </div>
                   )}
-                  <button className="mt-6 text-accent text-sm font-medium hover:underline flex items-center gap-1">
+                  <motion.button 
+                    whileHover={{ x: 5 }}
+                    onClick={() => setShowAnalysisModal(true)}
+                    className="mt-6 text-accent text-sm font-medium hover:underline flex items-center gap-1 relative z-10"
+                  >
                     View Full Analysis <ArrowRight size={14} />
-                  </button>
+                  </motion.button>
                 </motion.div>
 
                 {/* CARD 2: Pitch Deck */}
@@ -2699,19 +2889,26 @@ export default function App() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.2 }}
-                  className="bg-gray-900 rounded-2xl p-6 border border-border"
+                  className="glass-card-glow rounded-3xl p-8 border border-border/30 relative overflow-hidden group"
                 >
-                  <div className="flex items-center gap-4 mb-6">
-                    <div className="w-12 h-12 bg-purple-500/20 rounded-full flex items-center justify-center text-purple-400">
-                      <Plus size={24} />
+                  <div className="absolute inset-0 bg-gradient-to-tr from-purple-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                  <div className="absolute left-0 top-6 bottom-6 w-1 bg-gradient-to-b from-purple-500 to-purple-500/20 rounded-r-full" />
+                  <div className="flex items-center justify-between mb-6 relative z-10">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-purple-500/20 rounded-full flex items-center justify-center text-purple-400 border border-purple-500/30">
+                        <Presentation size={24} />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-bold">Pitch Deck Ready</h3>
+                        <p className="text-[10px] text-purple-400 font-medium uppercase tracking-widest">Storytelling Flow • 92% Readiness</p>
+                      </div>
                     </div>
-                    <h3 className="text-lg font-bold">Pitch Deck Ready</h3>
                   </div>
 
-                  <div className="space-y-2 max-h-48 overflow-y-auto mb-4 custom-scrollbar pr-2">
+                  <div className="space-y-2 max-h-48 overflow-y-auto mb-4 custom-scrollbar pr-2 relative z-10">
                     {result?.pitchSlides.map((slide, i) => (
-                      <div key={i} className="flex items-start gap-3 p-2 rounded-lg hover:bg-white/5 transition-all">
-                        <div className="shrink-0 w-6 h-6 bg-gray-800 text-gray-400 rounded text-[10px] flex items-center justify-center font-bold mt-0.5">
+                      <div key={i} className="flex items-start gap-3 p-3 rounded-xl hover:bg-white/5 border border-transparent hover:border-white/10 transition-all group/slide">
+                        <div className="shrink-0 w-6 h-6 bg-gray-800 text-gray-400 rounded text-[10px] flex items-center justify-center font-bold mt-0.5 group-hover/slide:bg-purple-500 group-hover/slide:text-white transition-colors">
                           {slide.slideNumber}
                         </div>
                         <div>
@@ -2722,7 +2919,7 @@ export default function App() {
                     ))}
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4 mb-6 pt-4 border-t border-gray-800">
+                  <div className="grid grid-cols-2 gap-4 mb-6 pt-4 border-t border-gray-800 relative z-10">
                     <div>
                       <p className="text-[10px] text-muted-text uppercase font-bold mb-1 tracking-wider">Target Customer</p>
                       <p className="text-xs text-white font-medium">{result?.targetCustomer || "Not specified"}</p>
@@ -2733,10 +2930,10 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="pt-4 border-t border-gray-800">
+                  <div className="pt-4 border-t border-gray-800 relative z-10">
                     <p className="text-[10px] text-muted-text uppercase font-bold mb-3 tracking-wider">Generate More Slides</p>
                     <div className="flex items-center gap-2">
-                      <div className="flex-1 flex items-center bg-gray-800 rounded-xl px-3 border border-gray-700">
+                      <div className="flex-1 flex items-center bg-gray-800/50 rounded-xl px-3 border border-gray-700">
                         <span className="text-xs text-gray-500 mr-2">Count:</span>
                         <input 
                           type="number" 
@@ -2752,16 +2949,16 @@ export default function App() {
                         disabled={isGeneratingSlides}
                         className="bg-accent hover:bg-blue-500 disabled:opacity-50 px-4 py-2 rounded-xl text-white text-xs font-bold transition-all flex items-center gap-2"
                       >
-                        {isGeneratingSlides ? "Generating..." : "Add Slides"} <Plus size={14} />
+                        {isGeneratingSlides ? "..." : "Add Slides"} <Plus size={14} />
                       </button>
                     </div>
                   </div>
 
                   <button 
                     onClick={handleDownloadPPTX}
-                    className="mt-6 w-full border border-gray-700 text-gray-400 hover:text-accent hover:border-accent hover:bg-accent/10 rounded-xl py-3 text-sm font-medium transition-all flex items-center justify-center gap-2"
+                    className="mt-6 w-full border border-gray-700 text-gray-400 hover:text-accent hover:border-accent hover:bg-accent/10 rounded-xl py-3 text-sm font-bold transition-all flex items-center justify-center gap-2 relative z-10"
                   >
-                    <Download size={16} /> Download PPT
+                    <Download size={16} /> Download Pitch Deck
                   </button>
                 </motion.div>
 
@@ -2770,39 +2967,44 @@ export default function App() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.3 }}
-                  className="bg-gray-900 rounded-2xl p-6 border border-border"
+                  className="glass-card-glow rounded-3xl p-8 border border-border/30 relative overflow-hidden group"
                 >
-                  <div className="flex items-center justify-between mb-2">
+                  <div className="absolute inset-0 bg-gradient-to-tr from-green-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                  <div className="absolute left-0 top-6 bottom-6 w-1 bg-gradient-to-b from-green-500 to-green-500/20 rounded-r-full" />
+                  <div className="flex items-center justify-between mb-2 relative z-10">
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center text-green-400">
+                      <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center text-green-400 border border-green-500/30">
                         <MapIcon size={24} />
                       </div>
-                      <h3 className="text-lg font-bold">Investors Near You</h3>
+                      <div>
+                        <h3 className="text-lg font-bold">Investors Near You</h3>
+                        <p className="text-[10px] text-green-400 font-medium uppercase tracking-widest">Network Matches • {selectedCity}</p>
+                      </div>
                     </div>
                     <span className="bg-gray-800 text-gray-400 text-[10px] px-2 py-0.5 rounded-full">
                       {result?.localInvestors?.length || investors.length} found
                     </span>
                   </div>
-                  <p className="text-muted-text text-sm mb-6 flex items-center gap-1">
-                    📍 {selectedCity} • Local network matches
+                  <p className="text-muted-text text-xs mb-6 flex items-center gap-1 relative z-10">
+                    📍 {selectedCity} • Local network matches • 98% Match Avg
                   </p>
 
-                  <div className="space-y-3">
-                    {(result?.localInvestors || investors.slice(0, 3)).map((inv: any, idx: number) => (
+                  <div className="space-y-2 max-h-48 overflow-y-auto mb-4 custom-scrollbar pr-2 relative z-10">
+                    {(result?.localInvestors || investors.slice(0, 5)).map((inv: any, idx: number) => (
                       <div 
                         key={inv.id || idx} 
-                        className="flex items-center justify-between p-2 rounded-xl hover:bg-white/5 transition-all cursor-pointer"
+                        className="flex items-center justify-between p-3 rounded-xl hover:bg-white/5 border border-transparent hover:border-white/10 transition-all group/inv cursor-pointer"
                         onClick={() => {
                           if (inv.uri) window.open(inv.uri, '_blank');
                         }}
                       >
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold text-white bg-accent">
+                          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xs font-bold text-white bg-accent shadow-lg shadow-accent/20 group-hover/inv:scale-110 transition-transform">
                             {inv.name?.substring(0, 2).toUpperCase() || inv.initials}
                           </div>
                           <div>
-                            <p className="text-sm font-medium text-white">{inv.name}</p>
-                            <p className="text-[10px] text-muted-text truncate max-w-[150px]">{inv.address || inv.fund}</p>
+                            <p className="text-sm font-medium text-white group-hover/inv:text-accent transition-colors">{inv.name}</p>
+                            <p className="text-[10px] text-muted-text truncate max-w-[120px]">{inv.fund || inv.address}</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
@@ -2812,13 +3014,10 @@ export default function App() {
                               setSelectedInvestorForMeeting(inv);
                               setActiveTab('scheduler');
                             }}
-                            className="text-[10px] bg-accent/10 text-accent hover:bg-accent hover:text-white px-2 py-1 rounded transition-all font-bold"
+                            className="text-[10px] bg-accent/20 text-accent hover:bg-accent hover:text-white px-3 py-1 rounded-lg transition-all font-bold border border-accent/30"
                           >
                             Book
                           </button>
-                          {inv.uri && (
-                            <ExternalLink size={12} className="text-accent" />
-                          )}
                         </div>
                       </div>
                     ))}
@@ -2826,91 +3025,83 @@ export default function App() {
 
                   <button 
                     onClick={() => setActiveTab('map')}
-                    className="mt-6 w-full bg-green-900/20 text-success border border-green-900/50 rounded-xl py-3 text-sm font-medium hover:bg-green-900/40 transition-all flex items-center justify-center gap-2"
+                    className="mt-2 w-full border border-gray-700 text-gray-400 hover:text-success hover:border-success hover:bg-success/10 rounded-xl py-3 text-sm font-bold transition-all flex items-center justify-center gap-2 relative z-10"
                   >
-                    View All on Map <ArrowRight size={16} />
+                    <MapIcon size={16} /> View All on Map
                   </button>
                 </motion.div>
 
-                {/* CARD 4: Email */}
+                {/* CARD 4: Investor Email Draft */}
                 <motion.div 
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.4 }}
-                  className="bg-gray-900 rounded-2xl p-6 border border-border"
+                  className="glass-card-glow rounded-3xl p-8 border border-border/30 relative overflow-hidden group"
                 >
-                  <div className="flex items-center gap-4 mb-6">
-                    <div className="w-12 h-12 bg-amber-500/20 rounded-full flex items-center justify-center text-amber-400">
-                      <Mail size={24} />
+                  <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                  <div className="absolute left-0 top-6 bottom-6 w-1 bg-gradient-to-b from-amber-500 to-amber-500/20 rounded-r-full" />
+                  
+                  <div className="flex flex-col gap-6 relative z-10">
+                    <div>
+                      <div className="flex items-center gap-4 mb-4">
+                        <div className="w-12 h-12 bg-amber-500/20 rounded-full flex items-center justify-center text-amber-400 border border-amber-500/30">
+                          <Mail size={24} />
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-bold">Email Draft</h3>
+                          <p className="text-[10px] text-amber-400 font-medium uppercase tracking-widest">72% Reply probability</p>
+                        </div>
+                      </div>
+                      
+                      <div className="p-5 bg-black/40 rounded-2xl border border-gray-800 shadow-inner group/email relative h-36 overflow-hidden">
+                        <div className="absolute top-3 right-3 opacity-0 group-hover/email:opacity-100 transition-opacity z-20">
+                           <button 
+                             onClick={() => {
+                               const subject = result?.investorEmail?.subject || "Investment Opportunity";
+                               const body = result?.investorEmail?.body || "";
+                               navigator.clipboard.writeText(`Subject: ${subject}\n\n${body}`);
+                               confetti({ particleCount: 50, spread: 40, origin: { y: 0.7 } });
+                             }}
+                             className="p-1.5 bg-gray-800 hover:bg-accent text-white rounded-lg transition-all"
+                           >
+                             <Share2 size={12} />
+                           </button>
+                        </div>
+                        <div className="relative z-10">
+                          <p className="text-amber-400 text-[10px] font-bold mb-1 truncate">Subject: {result?.investorEmail?.subject || "Investment Opportunity"}</p>
+                          <p className="text-gray-400 text-xs italic leading-relaxed line-clamp-3">
+                            {result?.investorEmail?.body ? (
+                              `"${result.investorEmail.body.substring(0, 150)}..."`
+                            ) : (
+                              "Drafting response..."
+                            )}
+                          </p>
+                        </div>
+                        <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-black/60 to-transparent" />
+                      </div>
                     </div>
-                    <h3 className="text-lg font-bold">Email Draft Ready</h3>
-                  </div>
 
-                  <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700/50 relative overflow-hidden">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-gray-500 text-[10px] uppercase font-bold">Subject:</span>
-                      <span className="text-white text-xs truncate">{result?.investorEmail.subject || "Investment Opportunity"}</span>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-3">
+                         <div className="p-3 bg-amber-900/10 border border-amber-900/20 rounded-xl text-center">
+                           <p className="text-[9px] text-gray-500 uppercase font-bold mb-1">Strength</p>
+                           <p className="text-sm font-bold text-amber-400">95%</p>
+                         </div>
+                         <div className="p-3 bg-blue-900/10 border border-blue-900/20 rounded-xl text-center">
+                           <p className="text-[9px] text-gray-500 uppercase font-bold mb-1">Clarity</p>
+                           <p className="text-sm font-bold text-blue-400">88%</p>
+                         </div>
+                      </div>
+                      
+                      <button 
+                        onClick={() => setActiveTab('email')}
+                        className="w-full h-12 bg-accent hover:bg-blue-600 text-white font-bold rounded-xl transition-all shadow-lg shadow-accent/20 flex items-center justify-center gap-2 text-sm"
+                      >
+                        Personalize <Send size={14} />
+                      </button>
                     </div>
-                    <div className="h-px bg-gray-700 my-2" />
-                    <p className="text-muted-text text-[10px] leading-relaxed line-clamp-4">
-                      {result?.investorEmail.body || "Dear Investor, I hope this email finds you well..."}
-                    </p>
-                    <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-gray-800 to-transparent" />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3 mt-6">
-                    <button 
-                      onClick={() => {
-                        setSelectedInvestor(investors[0]);
-                        setActiveTab('email');
-                      }}
-                      className="border border-gray-700 text-gray-300 hover:bg-white/5 rounded-xl py-3 text-sm font-medium transition-all"
-                    >
-                      Edit Draft
-                    </button>
-                    <button 
-                      onClick={() => {
-                        setSelectedInvestor(investors[0]);
-                        setActiveTab('email');
-                      }}
-                      className="bg-accent text-white hover:bg-blue-500 rounded-xl py-3 text-sm font-medium transition-all flex items-center justify-center gap-2"
-                    >
-                      Send Email <Send size={14} />
-                    </button>
                   </div>
                 </motion.div>
-                {/* CARD 5: Thinking Mode Analysis */}
-                {result?.thinkingAnalysis && (
-                  <motion.div 
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.5 }}
-                    className="bg-gray-900 rounded-2xl p-6 border border-border md:col-span-2"
-                  >
-                    <div className="flex items-center gap-4 mb-6">
-                      <div className="w-12 h-12 bg-amber-500/20 rounded-full flex items-center justify-center text-amber-400">
-                        <BrainCircuit size={24} />
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-bold">Deep Strategy Analysis</h3>
-                        <p className="text-[10px] text-amber-500 uppercase font-bold tracking-widest">High-Level Thinking Mode</p>
-                      </div>
-                    </div>
-
-                    <div className="bg-black/30 rounded-xl p-6 border border-white/5">
-                      <div className="prose prose-invert prose-sm max-w-none">
-                        <Markdown>
-                          {result.thinkingAnalysis}
-                        </Markdown>
-                      </div>
-                    </div>
-
-                    <div className="mt-6 flex items-center gap-2 text-[10px] text-gray-500">
-                      <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse" />
-                      This analysis was generated using Gemini's high-level reasoning capabilities for complex strategic planning.
-                    </div>
-                  </motion.div>
-                )}
               </div>
             </motion.div>
           )}
@@ -2954,8 +3145,9 @@ export default function App() {
                   {history.map((kit) => (
                     <motion.div 
                       key={kit.id}
-                      whileHover={{ y: -5 }}
-                      className="bg-gray-900 border border-border rounded-2xl p-6 hover:border-accent/50 transition-all cursor-pointer group"
+                      whileHover={{ y: -8, scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="glass-card-glow border border-white/10 rounded-3xl p-6 transition-all cursor-pointer group relative overflow-hidden"
                       onClick={() => {
                         setResult(kit.result);
                         setIdea(kit.idea);
@@ -2963,23 +3155,34 @@ export default function App() {
                         setActiveTab('dashboard');
                       }}
                     >
-                      <div className="flex items-center justify-between mb-4">
-                        <span className="text-[10px] bg-accent/10 text-accent px-2 py-0.5 rounded-full border border-accent/20">
+                      <div className="absolute inset-0 bg-gradient-to-br from-accent/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <div className="flex items-center justify-between mb-4 relative z-10">
+                        <span className="text-[10px] bg-accent/20 text-accent px-3 py-1 rounded-full border border-accent/30 font-bold uppercase tracking-wider">
                           {kit.city}
                         </span>
-                        <span className="text-[10px] text-gray-600">
+                        <div className="flex items-center gap-1.5 text-[10px] text-gray-500 font-medium">
+                          <Clock size={10} />
                           {new Date(kit.createdAt?.seconds * 1000).toLocaleDateString()}
-                        </span>
+                        </div>
                       </div>
-                      <h4 className="text-white font-bold mb-2 line-clamp-2 group-hover:text-accent transition-colors">{kit.idea}</h4>
-                      <p className="text-muted-text text-xs line-clamp-3 mb-6">
-                        Market Size: {kit.result.marketSize} • {kit.result.pitchSlides.length} Slides
-                      </p>
-                      <div className="flex items-center justify-between pt-4 border-t border-gray-800">
-                        <span className="text-xs text-accent font-medium">View Kit →</span>
+                      <h4 className="text-white font-bold mb-3 line-clamp-1 group-hover:text-accent transition-colors relative z-10">{kit.idea}</h4>
+                      <div className="flex items-center gap-4 mb-6 relative z-10">
+                        <div className="flex items-center gap-1 text-[10px] text-gray-400">
+                          <BarChart3 size={12} className="text-accent" />
+                          <span>{kit.result.marketSize}</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-[10px] text-gray-400">
+                          <Presentation size={12} className="text-purple-400" />
+                          <span>{kit.result.pitchSlides.length} Slides</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between pt-4 border-t border-white/5 relative z-10">
+                        <span className="text-[10px] text-accent font-bold uppercase tracking-widest group-hover:translate-x-1 transition-transform">View Full Kit →</span>
                         <div className="flex -space-x-2">
                           {[1, 2, 3].map(i => (
-                            <div key={i} className="w-6 h-6 rounded-full border-2 border-gray-900 bg-gray-800" />
+                            <div key={i} className="w-6 h-6 rounded-full border-2 border-gray-900 bg-accent/20 flex items-center justify-center">
+                               <Sparkles size={8} className="text-accent/50" />
+                            </div>
                           ))}
                         </div>
                       </div>
@@ -3099,14 +3302,15 @@ export default function App() {
                       setSelectedInvestor(inv);
                     }}
                     className={cn(
-                      "bg-gray-900 rounded-2xl p-4 border transition-all cursor-pointer flex items-center gap-4 group",
-                      selectedInvestor?.id === inv.id ? "border-accent bg-accent/5" : "border-border hover:border-gray-700"
+                      "glass-card-glow rounded-3xl p-5 border transition-all cursor-pointer flex items-center gap-5 group relative overflow-hidden",
+                      selectedInvestor?.id === inv.id ? "border-accent ring-1 ring-accent/50" : "border-white/10 hover:border-accent/40"
                     )}
                   >
-                    <div className="w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold text-white bg-accent group-hover:scale-110 transition-transform">
+                    <div className="absolute inset-0 bg-gradient-to-br from-accent/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-sm font-bold text-white bg-accent shadow-lg shadow-accent/20 group-hover:scale-110 transition-transform relative z-10">
                       {inv.name?.substring(0, 2).toUpperCase() || inv.initials}
                     </div>
-                    <div className="flex-1">
+                    <div className="flex-1 relative z-10">
                       <div className="flex items-center justify-between">
                         <h4 className="text-white font-semibold">{inv.name}</h4>
                         {inv.distance && <span className="text-[10px] bg-green-900/30 text-success px-2 py-0.5 rounded-full">{inv.distance}</span>}
@@ -3615,6 +3819,69 @@ export default function App() {
             </div>
           </motion.div>
           </>
+        )}
+      </AnimatePresence>
+      
+      {/* FULL ANALYSIS MODAL */}
+      <AnimatePresence>
+        {showAnalysisModal && result?.fullMarketResearch && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+          >
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="bg-card-bg border border-gray-700/50 shadow-2xl rounded-2xl w-full max-w-3xl max-h-[85vh] flex flex-col overflow-hidden"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between p-6 border-b border-gray-800/50 bg-gray-900/30">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center text-accent">
+                    <BarChart3 size={20} />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-white">Full Market Analysis</h2>
+                    <p className="text-xs text-muted-text">Comprehensive research for {result.startupName}</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setShowAnalysisModal(false)}
+                  className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-800 text-gray-400 hover:text-white transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="p-6 overflow-y-auto custom-scrollbar flex-1">
+                <div className="prose prose-invert prose-blue max-w-none">
+                  <Markdown>{result.fullMarketResearch}</Markdown>
+                </div>
+                
+                {/* Visual Flair in Modal */}
+                <div className="mt-8 grid grid-cols-2 gap-4 pb-4">
+                  <div className="bg-gray-800/20 border border-gray-700/50 rounded-xl p-4 flex items-center gap-4">
+                     <Target className="w-8 h-8 text-green-400" />
+                     <div>
+                       <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Opportunity Score</p>
+                       <p className="text-2xl font-bold text-white">{result.opportunityScore}/10</p>
+                     </div>
+                  </div>
+                  <div className="bg-gray-800/20 border border-gray-700/50 rounded-xl p-4 flex items-center gap-4">
+                     <Users className="w-8 h-8 text-blue-400" />
+                     <div>
+                       <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Target Customer</p>
+                       <p className="text-sm font-bold text-white">{result.targetCustomer}</p>
+                     </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>
