@@ -85,6 +85,7 @@ async function startServer() {
   // Security headers for production
   app.use(
     helmet({
+      crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
       contentSecurityPolicy: {
         directives: {
           ...helmet.contentSecurityPolicy.getDefaultDirectives(),
