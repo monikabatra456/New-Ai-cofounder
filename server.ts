@@ -88,9 +88,10 @@ async function startServer() {
       contentSecurityPolicy: {
         directives: {
           ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-          "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://unpkg.com", "https://cdn.jsdelivr.net"],
-          "img-src": ["'self'", "data:", "https:", "http:", "https://*.tile.openstreetmap.org"],
-          "connect-src": ["'self'", "https:", "http:", "ws:", "wss:"],
+          "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://unpkg.com", "https://cdn.jsdelivr.net", "https://apis.google.com", "https://*.firebaseapp.com"],
+          "img-src": ["'self'", "data:", "https:", "http:", "https://*.tile.openstreetmap.org", "https://*.google.com", "https://*.googleusercontent.com"],
+          "connect-src": ["'self'", "https:", "http:", "ws:", "wss:", "https://*.googleapis.com", "https://*.firebaseapp.com"],
+          "frame-src": ["'self'", "https://*.firebaseapp.com"],
         },
       },
     })
