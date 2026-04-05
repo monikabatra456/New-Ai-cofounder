@@ -1543,24 +1543,24 @@ const PPTMaker = ({
   return (
     <div className="h-screen flex flex-col bg-[#0D1117]">
       {/* Top Action Bar */}
-      <div className="sticky top-0 bg-[#0A0F2C] border-b border-[#1F2937] px-6 py-4 flex items-center justify-between z-40">
-        <div className="flex items-center gap-4">
-          <button onClick={onRegenerate} className="text-white hover:text-accent transition-colors flex items-center gap-2">
+      <div className="sticky top-0 bg-[#0A0F2C] border-b border-[#1F2937] px-4 md:px-6 py-4 flex flex-col md:flex-row items-center justify-between z-40 gap-4 md:gap-0">
+        <div className="flex items-center justify-between w-full md:w-auto gap-4">
+          <button onClick={onRegenerate} className="text-white hover:text-accent transition-colors flex items-center gap-2 text-sm md:text-base">
             <ChevronLeft size={20} />
-            <span className="font-medium">Regenerate</span>
+            <span className="font-medium hidden sm:inline">Regenerate</span>
           </button>
-          <div className="h-4 w-px bg-gray-700 mx-2" />
-          <h2 className="text-white font-bold truncate max-w-[300px]">{pptData.presentationTitle}</h2>
+          <div className="h-4 w-px bg-gray-700 mx-1 md:mx-2" />
+          <h2 className="text-white font-bold truncate max-w-[150px] md:max-w-[300px] text-sm md:text-base">{pptData.presentationTitle}</h2>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="flex items-center bg-gray-900 border border-gray-800 rounded-lg p-1 mr-2">
+        <div className="flex items-center gap-2 md:gap-3 flex-wrap justify-center w-full md:w-auto">
+          <div className="flex items-center bg-gray-900 border border-gray-800 rounded-lg p-1 md:mr-2">
             {(['fade', 'slide', 'zoom'] as const).map(t => (
               <button
                 key={t}
                 onClick={() => setTransition(t)}
                 className={cn(
-                  "px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all",
+                  "px-2 md:px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all",
                   transition === t ? "bg-accent text-white shadow-lg" : "text-gray-500 hover:text-gray-300"
                 )}
               >
@@ -1570,9 +1570,9 @@ const PPTMaker = ({
           </div>
           <button 
             onClick={onEditPrompt}
-            className="px-4 py-2 border border-gray-700 text-gray-300 rounded-lg text-sm font-medium hover:bg-white/5 transition-all"
+            className="px-3 md:px-4 py-2 border border-gray-700 text-gray-300 rounded-lg text-xs md:text-sm font-medium hover:bg-white/5 transition-all"
           >
-            Edit Prompt ✏️
+            <span className="hidden sm:inline">Edit Prompt</span> ✏️
           </button>
           <div className="flex items-center gap-3">
             <button 
@@ -1594,9 +1594,9 @@ const PPTMaker = ({
         </div>
       </div>
 
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
         {/* Slide Navigator */}
-        <div className="w-[200px] bg-[#0D1117] border-r border-[#1F2937] overflow-y-auto p-4 custom-scrollbar">
+        <div className="hidden md:block md:w-[150px] lg:w-[200px] bg-[#0D1117] border-r border-[#1F2937] overflow-y-auto p-2 lg:p-4 custom-scrollbar">
           <div className="flex flex-col gap-3">
             {pptData.slides.map((slide, i) => (
               <button
@@ -1647,12 +1647,12 @@ const PPTMaker = ({
             >
               {/* Slide Content Rendering */}
               {currentSlide.layoutType === 'title' && (
-                <div className="h-full flex flex-col items-center justify-center p-12 text-center relative">
-                  <div className="text-[64px] mb-5">{currentSlide.emoji}</div>
-                  <h1 className="text-[48px] font-bold leading-tight mb-3" style={{ color: pptData.theme.titleColor }}>
+                <div className="h-full flex flex-col items-center justify-center p-6 md:p-12 text-center relative">
+                  <div className="text-[40px] md:text-[64px] mb-3 md:mb-5">{currentSlide.emoji}</div>
+                  <h1 className="text-[28px] md:text-[48px] font-bold leading-tight mb-2 md:mb-3" style={{ color: pptData.theme.titleColor }}>
                     {pptData.presentationTitle}
                   </h1>
-                  <p className="text-[22px]" style={{ color: pptData.theme.accentColor }}>
+                  <p className="text-lg md:text-[22px]" style={{ color: pptData.theme.accentColor }}>
                     {pptData.subtitle}
                   </p>
                   <div className="absolute bottom-0 left-0 right-0 h-1" style={{ backgroundColor: pptData.theme.accentColor }} />
@@ -1660,22 +1660,22 @@ const PPTMaker = ({
               )}
 
               {currentSlide.layoutType === 'bullets' && (
-                <div className="h-full p-12 relative flex flex-col">
+                <div className="h-full p-6 md:p-12 relative flex flex-col overflow-y-auto custom-scrollbar md:overflow-visible">
                   <div className="absolute top-0 left-0 right-0 h-1" style={{ backgroundColor: pptData.theme.accentColor }} />
-                  <div className="absolute top-4 right-6 text-gray-500 text-xs">{currentSlide.slideNumber}</div>
+                  <div className="absolute top-2 right-4 md:top-4 md:right-6 text-gray-500 text-[10px] md:text-xs">{currentSlide.slideNumber}</div>
                   
-                  <div className="flex items-center gap-4 mb-6">
-                    <span className="text-4xl">{currentSlide.emoji}</span>
-                    <h2 className="text-[32px] font-bold" style={{ color: pptData.theme.titleColor }}>{currentSlide.title}</h2>
+                  <div className="flex items-center gap-2 md:gap-4 mb-4 md:mb-6 mt-4 md:mt-0">
+                    <span className="text-2xl md:text-4xl">{currentSlide.emoji}</span>
+                    <h2 className="text-xl md:text-[32px] font-bold leading-tight" style={{ color: pptData.theme.titleColor }}>{currentSlide.title}</h2>
                   </div>
                   
-                  <p className="text-base mb-8 leading-relaxed" style={{ color: pptData.theme.textColor }}>{currentSlide.content}</p>
+                  <p className="text-xs md:text-base mb-4 md:mb-8 leading-relaxed line-clamp-3 md:line-clamp-none" style={{ color: pptData.theme.textColor }}>{currentSlide.content}</p>
                   
-                  <div className="space-y-4">
+                  <div className="space-y-2 md:space-y-4 pb-4 md:pb-0">
                     {currentSlide.bulletPoints?.map((bullet, i) => (
-                      <div key={i} className="flex items-start gap-4">
-                        <div className="w-2 h-2 rounded-full mt-2 shrink-0" style={{ backgroundColor: pptData.theme.accentColor }} />
-                        <p className="text-base leading-relaxed" style={{ color: pptData.theme.textColor }}>{bullet}</p>
+                      <div key={i} className="flex items-start gap-3 md:gap-4">
+                        <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full mt-1.5 md:mt-2 shrink-0" style={{ backgroundColor: pptData.theme.accentColor }} />
+                        <p className="text-xs md:text-base leading-relaxed" style={{ color: pptData.theme.textColor }}>{bullet}</p>
                       </div>
                     ))}
                   </div>
@@ -1683,19 +1683,19 @@ const PPTMaker = ({
               )}
 
               {currentSlide.layoutType === 'stats' && (
-                <div className="h-full p-12 relative flex flex-col">
+                <div className="h-full p-6 md:p-12 relative flex flex-col overflow-y-auto custom-scrollbar md:overflow-visible">
                   <div className="absolute top-0 left-0 right-0 h-1" style={{ backgroundColor: pptData.theme.accentColor }} />
                   
-                  <div className="flex items-center gap-4 mb-8">
-                    <span className="text-4xl">{currentSlide.emoji}</span>
-                    <h2 className="text-[32px] font-bold" style={{ color: pptData.theme.titleColor }}>{currentSlide.title}</h2>
+                  <div className="flex items-center gap-2 md:gap-4 mb-4 md:mb-8 mt-4 md:mt-0">
+                    <span className="text-2xl md:text-4xl">{currentSlide.emoji}</span>
+                    <h2 className="text-xl md:text-[32px] font-bold" style={{ color: pptData.theme.titleColor }}>{currentSlide.title}</h2>
                   </div>
 
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-5 mt-4">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-5 mt-2 md:mt-4 pb-4 md:pb-0">
                     {currentSlide.stats?.map((stat, i) => (
-                      <div key={i} className="rounded-xl p-6 text-center border border-white/10" style={{ backgroundColor: pptData.theme.cardBg }}>
-                        <div className="text-3xl font-bold mb-2" style={{ color: pptData.theme.accentColor }}>{stat.value}</div>
-                        <div className="text-[12px] uppercase tracking-wider opacity-60" style={{ color: pptData.theme.textColor }}>{stat.label}</div>
+                      <div key={i} className="rounded-xl p-3 md:p-6 text-center border border-white/10" style={{ backgroundColor: pptData.theme.cardBg }}>
+                        <div className="text-xl md:text-3xl font-bold mb-1 md:mb-2" style={{ color: pptData.theme.accentColor }}>{stat.value}</div>
+                        <div className="text-[9px] md:text-[12px] uppercase tracking-wider opacity-60" style={{ color: pptData.theme.textColor }}>{stat.label}</div>
                       </div>
                     ))}
                   </div>
@@ -1703,19 +1703,19 @@ const PPTMaker = ({
               )}
 
               {currentSlide.layoutType === 'split' && (
-                <div className="h-full p-12 flex gap-10 relative">
+                <div className="h-full p-6 md:p-12 flex flex-col md:flex-row gap-4 md:gap-10 relative overflow-y-auto custom-scrollbar md:overflow-visible pt-10 md:pt-12 pb-4 md:pb-12">
                   <div className="absolute top-0 left-0 right-0 h-1" style={{ backgroundColor: pptData.theme.accentColor }} />
                   
-                  <div className="flex-1">
-                    <div className="text-[80px] mb-6">{currentSlide.emoji}</div>
-                    <h2 className="text-[32px] font-bold mb-4" style={{ color: pptData.theme.titleColor }}>{currentSlide.title}</h2>
-                    <p className="text-base leading-relaxed" style={{ color: pptData.theme.textColor }}>{currentSlide.content}</p>
+                  <div className="flex-1 shrink-0 md:shrink">
+                    <div className="text-4xl md:text-[80px] mb-2 md:mb-6">{currentSlide.emoji}</div>
+                    <h2 className="text-xl md:text-[32px] font-bold mb-2 md:mb-4 leading-tight" style={{ color: pptData.theme.titleColor }}>{currentSlide.title}</h2>
+                    <p className="text-xs md:text-base leading-relaxed line-clamp-3 md:line-clamp-none" style={{ color: pptData.theme.textColor }}>{currentSlide.content}</p>
                   </div>
 
-                  <div className="flex-1 space-y-3">
+                  <div className="flex-1 space-y-2 md:space-y-3 pb-4 md:pb-0">
                     {currentSlide.bulletPoints?.map((bullet, i) => (
-                      <div key={i} className="p-4 rounded-lg border-l-4" style={{ backgroundColor: pptData.theme.cardBg, borderLeftColor: pptData.theme.accentColor }}>
-                        <p className="text-sm leading-relaxed" style={{ color: pptData.theme.textColor }}>{bullet}</p>
+                      <div key={i} className="p-3 md:p-4 rounded-lg border-l-2 md:border-l-4" style={{ backgroundColor: pptData.theme.cardBg, borderLeftColor: pptData.theme.accentColor }}>
+                        <p className="text-[10px] md:text-sm leading-relaxed" style={{ color: pptData.theme.textColor }}>{bullet}</p>
                       </div>
                     ))}
                   </div>
@@ -1723,37 +1723,39 @@ const PPTMaker = ({
               )}
 
               {currentSlide.layoutType === 'quote' && (
-                <div className="h-full flex flex-col items-center justify-center p-16 text-center relative">
+                <div className="h-full flex flex-col items-center justify-center p-6 md:p-16 text-center relative">
                   <div className="absolute top-0 left-0 right-0 h-1" style={{ backgroundColor: pptData.theme.accentColor }} />
-                  <Quote size={80} className="mb-6 opacity-20" style={{ color: pptData.theme.accentColor }} />
-                  <p className="text-2xl italic font-serif leading-relaxed max-w-[600px]" style={{ color: pptData.theme.titleColor }}>
+                  <div className="flex justify-center mb-4 md:mb-6">
+                    <Quote className="opacity-20 w-10 h-10 md:w-[80px] md:h-[80px]" style={{ color: pptData.theme.accentColor }} />
+                  </div>
+                  <p className="text-base md:text-2xl italic font-serif leading-relaxed max-w-[600px] px-4" style={{ color: pptData.theme.titleColor }}>
                     "{currentSlide.content}"
                   </p>
-                  <p className="mt-6 text-sm opacity-60" style={{ color: pptData.theme.textColor }}>
+                  <p className="mt-4 md:mt-6 text-xs md:text-sm opacity-60" style={{ color: pptData.theme.textColor }}>
                     — {currentSlide.title}
                   </p>
                 </div>
               )}
 
               {currentSlide.layoutType === 'team' && (
-                <div className="h-full p-12 relative flex flex-col">
+                <div className="h-full p-6 md:p-12 relative flex flex-col overflow-y-auto custom-scrollbar md:overflow-visible">
                   <div className="absolute top-0 left-0 right-0 h-1" style={{ backgroundColor: pptData.theme.accentColor }} />
                   
-                  <div className="flex items-center gap-4 mb-8">
-                    <span className="text-4xl">{currentSlide.emoji}</span>
-                    <h2 className="text-[32px] font-bold" style={{ color: pptData.theme.titleColor }}>{currentSlide.title}</h2>
+                  <div className="flex items-center gap-2 md:gap-4 mb-4 md:mb-8 mt-4 md:mt-0">
+                    <span className="text-2xl md:text-4xl">{currentSlide.emoji}</span>
+                    <h2 className="text-xl md:text-[32px] font-bold" style={{ color: pptData.theme.titleColor }}>{currentSlide.title}</h2>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-6 mt-4">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-6 mt-2 md:mt-4 pb-4 md:pb-0">
                     {currentSlide.bulletPoints?.map((member, i) => {
                       const [name, role] = member.split(':');
                       return (
-                        <div key={i} className="rounded-xl p-6 text-center" style={{ backgroundColor: pptData.theme.cardBg }}>
-                          <div className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center text-2xl" style={{ backgroundColor: pptData.theme.accentColor }}>
+                        <div key={i} className="rounded-xl p-3 md:p-6 text-center" style={{ backgroundColor: pptData.theme.cardBg }}>
+                          <div className="w-10 h-10 md:w-16 md:h-16 rounded-full mx-auto mb-2 md:mb-4 flex items-center justify-center text-lg md:text-2xl font-bold" style={{ backgroundColor: pptData.theme.accentColor }}>
                             {name.substring(0, 1)}
                           </div>
-                          <div className="font-bold text-white mb-1">{name}</div>
-                          <div className="text-xs opacity-60" style={{ color: pptData.theme.textColor }}>{role || 'Co-Founder'}</div>
+                          <div className="font-bold text-[11px] md:text-base text-white mb-0.5 md:mb-1 truncate">{name}</div>
+                          <div className="text-[9px] md:text-xs opacity-60 truncate" style={{ color: pptData.theme.textColor }}>{role || 'Co-Founder'}</div>
                         </div>
                       );
                     })}
@@ -1762,18 +1764,18 @@ const PPTMaker = ({
               )}
 
               {currentSlide.layoutType === 'thankyou' && (
-                <div className="h-full flex flex-col items-center justify-center p-12 text-center relative">
-                  <div className="text-[72px] mb-6">🙏</div>
-                  <h1 className="text-[52px] font-bold leading-tight mb-3" style={{ color: pptData.theme.titleColor }}>
+                <div className="h-full flex flex-col items-center justify-center p-6 md:p-12 text-center relative">
+                  <div className="text-[40px] md:text-[72px] mb-4 md:mb-6">🙏</div>
+                  <h1 className="text-[32px] md:text-[52px] font-bold leading-tight mb-2 md:mb-3" style={{ color: pptData.theme.titleColor }}>
                     Thank You
                   </h1>
-                  <p className="text-[22px] mb-8" style={{ color: pptData.theme.accentColor }}>
+                  <p className="text-lg md:text-[22px] mb-4 md:mb-8" style={{ color: pptData.theme.accentColor }}>
                     {currentSlide.subtitle || "Let's build something amazing together"}
                   </p>
-                  <p className="text-base max-w-[500px]" style={{ color: pptData.theme.textColor }}>
+                  <p className="text-xs md:text-base max-w-[280px] md:max-w-[500px]" style={{ color: pptData.theme.textColor }}>
                     {currentSlide.content}
                   </p>
-                  <div className="absolute bottom-6 left-0 right-0 text-[13px] opacity-40" style={{ color: pptData.theme.textColor }}>
+                  <div className="absolute bottom-4 md:bottom-6 left-0 right-0 text-[10px] md:text-[13px] opacity-40 px-4" style={{ color: pptData.theme.textColor }}>
                     Made with FounderAI
                   </div>
                 </div>
